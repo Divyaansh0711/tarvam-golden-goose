@@ -95,4 +95,97 @@ button.primary:hover { background: var(--accent-dark); }
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--muted);
+  margin: 4px 4px 0 0;
 }
+
+h1 { margin-bottom: 4px; }
+.lede { color: var(--muted); max-width: 640px; line-height: 1.5; margin-top: 0; }
+.muted { color: var(--muted); }
+
+section { margin-top: 36px; }
+section h2 { font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+.pending-inbox {
+  background: #fbf6e9;
+  border: 1px solid #ecdca0;
+  border-radius: 12px;
+  padding: 16px 20px 4px;
+  margin-top: 24px;
+}
+.pending-inbox h2 { border: none; }
+
+.mem-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+.mem-card.pending { background: #fffdf6; }
+.mem-card.done { opacity: 0.6; }
+
+.mem-main strong { font-size: 1rem; }
+.mem-main .quote {
+  font-style: italic;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 6px 0 4px;
+}
+
+.mem-actions { display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
+.mem-actions form { display: inline; }
+.mem-actions details { position: relative; }
+.mem-actions details form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 5;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  min-width: 220px;
+}
+
+button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+button:hover { border-color: var(--accent); }
+
+input, textarea {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.add-form {
+  margin-top: 12px;
+  color: var(--muted);
+}
+.add-form summary { cursor: pointer; font-size: 0.9rem; }
+.add-form form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.add-form input { flex: 1 1 180px; }

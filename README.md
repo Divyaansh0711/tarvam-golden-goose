@@ -52,7 +52,7 @@ without AI assistance, per the brief's requirement for Part One.
 ## Build phases (tracking)
 
 - [x] 1. Scaffolding — repo layout, FastAPI skeleton, schema, docs, config
-- [ ] 2. Core memory store + manual CRUD + Memory screen
+- [x] 2. Core memory store + manual CRUD + Memory screen
 - [ ] 3. Ingestion + extraction pipeline + Dictation feed screen
 - [ ] 4. Hey Kivi actions (entity resolution, instructions, task resume)
 - [ ] 5. Grounded Q&A + refusal handling

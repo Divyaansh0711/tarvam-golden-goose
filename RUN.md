@@ -2,9 +2,8 @@
 
 **Primary review method: completely local application, SQLite embedded database.**
 
-> Status: scaffolding only (phase 1 of 8). The commands below start the app and confirm the
-> database is live; the interactive screens (Dictation feed, Memory, Hey Kivi) land in phases 2-5
-> and this file will be updated as each becomes reviewable.
+> Status: phase 2 of 8. The Memory screen is reviewable now (view/add/edit/confirm/dismiss/forget
+> entities, instructions, and tasks). Dictation feed and Hey Kivi land in phases 3-5.
 
 ## 1. Runtimes and versions
 
@@ -43,10 +42,13 @@ uvicorn app.main:app --reload
 
 http://127.0.0.1:8000
 
-## 7. Primary interactions to try (phase 1)
+## 7. Primary interactions to try (phase 2)
 
 - Visit `/healthz` — confirms the database exists and lists its tables.
-- Visit `/` — landing page (the linked screens are not built yet; see phase tracker in README.md).
+- Visit `/memory` — with `--seed`, you'll see a confirmed entity (Rahul) and instruction (CC
+  manager on client emails). Try: editing an entity, adding a new instruction manually, marking a
+  task done, deleting something and confirming it's gone.
+- Dictation feed and Hey Kivi (`/dictations`, `/hey-kivi`) are not built yet (phases 3-5).
 
 ## 8. Evaluation
 

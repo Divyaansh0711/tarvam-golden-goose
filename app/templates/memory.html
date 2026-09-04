@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Memory — Kivi{% endblock %}
+{% block content %}
+<h1>Memory</h1>
+<p class="lede">Everything Kivi currently remembers. Every entry shows what it was told and can be corrected or removed in one click — the same as fixing a mispronunciation.</p>
+
+{% if entities_pending or instructions_pending %}
+<section class="pending-inbox">
+  <h2>Pending confirmation</h2>
+  <p class="muted">These were extracted from something you said, but weren't unambiguous enough to commit automatically. Nothing here affects Hey Kivi until you confirm it.</p>
+
+  {% for e in entities_pending %}
+  <div class="mem-card pending">
+    <div class="mem-main">
+      <span class="tag">entity</span>
+      <strong>{{ e.resolved_as }}</strong>
+      <span class="muted">({{ e.surface_forms | join(', ') }})</span>
+      <p class="quote">&ldquo;{{ e.source_quote }}&rdquo;</p>
+      <span class="tag">confidence {{ '%.0f' % (e.confidence * 100) }}%</span>
+    </div>
+    <div class="mem-actions">
+      <form method="post" action="/memory/entities/{{ e.id }}/confirm"><button class="primary" type="submit">Confirm</button></form>
+      <form method="post" action="/memory/entities/{{ e.id }}/reject"><button type="submit">Dismiss</button></form>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% for i in instructions_pending %}
+  <div class="mem-card pending">
+    <div class="mem-main">
+      <span class="tag">instruction</span>
+      <strong>{{ i.rule_text }}</strong>
+      <p class="quote">&ldquo;{{ i.source_quote }}&rdquo;</p>
+      <span class="tag">confidence {{ '%.0f' % (i.confidence * 100) }}%</span>
+    </div>
+    <div class="mem-actions">
+      <form method="post" action="/memory/instructions/{{ i.id }}/confirm"><button class="primary" type="submit">Confirm</button></form>
+      <form method="post" action="/memory/instructions/{{ i.id }}/reject"><button type="submit">Dismiss</button></form>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section>
+  <h2>Entities</h2>
+  {% if not entities_confirmed %}<p class="muted">Nothing yet.</p>{% endif %}
+  {% for e in entities_confirmed %}
+  <div class="mem-card">
+    <div class="mem-main">
+      <strong>{{ e.resolved_as }}</strong>
+      <span class="muted">({{ e.surface_forms | join(', ') }})</span>
+      {% if e.role_context %}<p class="muted">{{ e.role_context }}</p>{% endif %}
+      <p class="quote">&ldquo;{{ e.source_quote }}&rdquo;</p>
+      <span class="tag">{{ 'global' if e.scope.global else (e.scope.apps | join(', ') if e.scope.apps else 'unscoped') }}</span>
+    </div>
+    <div class="mem-actions">
+      <details>
+        <summary>Edit</summary>
+        <form method="post" action="/memory/entities/{{ e.id }}/update">
+          <input name="resolved_as" value="{{ e.resolved_as }}" required>
+          <input name="role_context" value="{{ e.role_context or '' }}" placeholder="role / context">
+          <button class="primary" type="submit">Save</button>
+        </form>
+      </details>
+      <form method="post" action="/memory/entities/{{ e.id }}/delete" onsubmit="return confirm('Forget this entity?');">
+        <button type="submit">Forget</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  <details class="add-form">
+    <summary>+ Add an entity manually</summary>
+    <form method="post" action="/memory/entities">
+      <input name="surface_forms" placeholder="surface forms, comma-separated (e.g. Rahul, Rahul S)" required>
+      <input name="resolved_as" placeholder="resolved as (e.g. Rahul Sharma — engineering lead)" required>
+      <input name="role_context" placeholder="role / context (optional)">
+      <input name="app" placeholder="app to scope to (blank = global)">
+      <button class="primary" type="submit">Add</button>
+    </form>
+  </details>
+</section>
+
+<section>
+  <h2>Standing instructions</h2>
+  {% if not instructions_confirmed %}<p class="muted">Nothing yet.</p>{% endif %}
+  {% for i in instructions_confirmed %}
+  <div class="mem-card">
+    <div class="mem-main">
+      <strong>{{ i.rule_text }}</strong>
+      <p class="quote">&ldquo;{{ i.source_quote }}&rdquo;</p>
+      <span class="tag">{{ i.scope.app or 'any app' }}{% if i.scope.persona %} &middot; {{ i.scope.persona }}{% endif %}</span>
+      {% if not i.active %}<span class="tag">inactive</span>{% endif %}
+    </div>
+    <div class="mem-actions">
+      <details>
+        <summary>Edit</summary>
+        <form method="post" action="/memory/instructions/{{ i.id }}/update">
+          <input name="rule_text" value="{{ i.rule_text }}" required>
+          <label><input type="checkbox" name="active" {{ 'checked' if i.active }}> active</label>
+          <button class="primary" type="submit">Save</button>
+        </form>
+      </details>
+      <form method="post" action="/memory/instructions/{{ i.id }}/delete" onsubmit="return confirm('Forget this instruction?');">
+        <button type="submit">Forget</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  <details class="add-form">
+    <summary>+ Add an instruction manually</summary>
+    <form method="post" action="/memory/instructions">
+      <input name="rule_text" placeholder="e.g. Always CC my manager on client emails" required>
+      <input name="app" placeholder="app to scope to (optional)">
+      <input name="persona" placeholder="persona (optional)">
+      <button class="primary" type="submit">Add</button>
+    </form>
+  </details>
+</section>
+
+<section>
+  <h2>Open work</h2>
+  {% if not tasks_open %}<p class="muted">Nothing in progress.</p>{% endif %}
+  {% for t in tasks_open %}
+  <div class="mem-card">
+    <div class="mem-main">
+      <strong>{{ t.label }}</strong>
+      <span class="tag">{{ t.app }}</span>
+      <p class="muted">{{ t.last_state_summary }}</p>
+      <span class="tag">seen in {{ t.source_dictation_ids | length }} dictation(s)</span>
+      <span class="tag">expires {{ t.expires_at }}</span>
+    </div>
+    <div class="mem-actions">
+      <details>
+        <summary>Edit</summary>
+        <form method="post" action="/memory/tasks/{{ t.id }}/update">
+          <input name="last_state_summary" value="{{ t.last_state_summary }}" required>
+          <button class="primary" type="submit">Save</button>
+        </form>
+      </details>
+      <form method="post" action="/memory/tasks/{{ t.id }}/done">
+        <button type="submit">Mark done</button>
+      </form>
+      <form method="post" action="/memory/tasks/{{ t.id }}/delete" onsubmit="return confirm('Forget this task?');">
+        <button type="submit">Forget</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  <details class="add-form">
+    <summary>+ Add a task manually</summary>
+    <form method="post" action="/memory/tasks">
+      <input name="label" placeholder="e.g. PRD — voice search v2" required>
+      <input name="app" placeholder="app (e.g. docs)" required>
+      <input name="last_state_summary" placeholder="current state (e.g. outline + intro drafted)" required>
+      <button class="primary" type="submit">Add</button>
+    </form>
+  </details>
+</section>
+
+{% if tasks_done %}
+<section>
+  <h2>Completed work</h2>
+  {% for t in tasks_done %}
+  <div class="mem-card done">
+    <div class="mem-main">
+      <strong>{{ t.label }}</strong>
+      <span class="tag">{{ t.app }}</span>
+      <p class="muted">{{ t.last_state_summary }}</p>
+    </div>
+    <div class="mem-actions">
+      <form method="post" action="/memory/tasks/{{ t.id }}/delete" onsubmit="return confirm('Forget this task?');">
+        <button type="submit">Forget</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

@@ -9,12 +9,14 @@ from fastapi.templating import Jinja2Templates
 load_dotenv()
 
 from app.db import get_db  # noqa: E402  (after load_dotenv, before use)
+from app.routers import memory  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(title="Kivi — Semantic Memory")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+app.include_router(memory.router)
 
 
 @app.get("/healthz")
