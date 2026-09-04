@@ -1,0 +1,98 @@
+:root {
+  --bg: #f6f3ec;
+  --ink: #14171c;
+  --muted: #6b6f76;
+  --accent: #7fae3f;
+  --accent-dark: #5c8a2a;
+  --card-bg: #ffffff;
+  --border: #e2ddd0;
+  --danger: #b3452c;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.topbar nav { display: flex; gap: 18px; flex: 1; }
+.topbar nav a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+.topbar nav a:hover { color: var(--ink); }
+
+.reset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--danger);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.reset-btn:hover { background: var(--danger); color: white; }
+
+.content { max-width: 960px; margin: 0 auto; padding: 40px 32px 80px; }
+
+.hero h1 { font-size: 2rem; margin-bottom: 8px; }
+.hero p.lede, .hero > p { color: var(--muted); max-width: 640px; line-height: 1.5; }
+
+.hero-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.card {
+  display: block;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--accent); }
+.card h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.card p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
+
+button.primary {
+  background: var(--accent);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+button.primary:hover { background: var(--accent-dark); }
+
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Kivi{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">kivi</a>
+    <nav>
+      <a href="/dictations">Dictation feed</a>
+      <a href="/memory">Memory</a>
+      <a href="/hey-kivi">Hey Kivi</a>
+    </nav>
+    <form action="/reset" method="post" onsubmit="return confirm('Reset all memory and dictations?');">
+      <button class="reset-btn" type="submit">Reset</button>
+    </form>
+  </header>
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
