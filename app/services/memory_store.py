@@ -208,11 +208,25 @@ def append_task_progress(
     source_dictation_id: int | None,
     reasoning: str,
 ) -> None:
+    """Append new progress to the task's running summary rather than
+    replacing it. Each individual extraction call only sees the ONE new
+    dictation, with no visibility into the task's prior state — replacing
+    the summary would silently lose earlier progress (e.g. "outline and
+    intro done" disappearing the moment "metrics done" is recorded, even
+    though both are still true). Keeping a running log is what actually
+    lets "recover information distributed across multiple dictations" hold
+    for tasks whose state is described incrementally across dictations."""
     task = get_task(conn, task_id)
     source_ids = task["source_dictation_ids"] + ([source_dictation_id] if source_dictation_id else [])
+    existing_summary = (task["last_state_summary"] or "").strip()
+    new_summary = last_state_summary.strip()
+    if existing_summary and new_summary and new_summary.lower() not in existing_summary.lower():
+        combined_summary = f"{existing_summary} {new_summary}"
+    else:
+        combined_summary = new_summary or existing_summary
     conn.execute(
         "UPDATE tasks SET last_state_summary = ?, source_dictation_ids_json = ?, updated_at = ? WHERE id = ?",
-        (last_state_summary, dumps(source_ids), _now(), task_id),
+        (combined_summary, dumps(source_ids), _now(), task_id),
     )
     log_event(
         conn, action="updated", reasoning=reasoning, dictation_id=source_dictation_id,

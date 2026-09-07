@@ -46,10 +46,13 @@ without disturbing the existing committed records.
 
 ## `qa_testset.jsonl`
 
-19 hand-authored grounded Q&A cases, each specifying `setup_dictations` (or `setup_manual` for the
-two cases that need a deterministically pending, never-confirmed memory row — one entity, one
-recurring task) to seed memory, the `app` the question is asked from, and `expected_grounded` +
-`expected_answer_contains`. Written before running the pipeline against them. Covers: direct
+19 hand-authored grounded Q&A cases, each specifying `setup` — a list of `{text, app}` dictations
+replayed through the real extraction pipeline to seed memory, with a per-item `app` since several
+cases deliberately establish memory in one app and ask from another (or `setup_manual` for the two
+cases that need a deterministically pending, never-confirmed memory row — one entity, one recurring
+task, bypassing extraction's own confidence judgment for a guaranteed-pending fixture) — plus the
+`app` the question is asked from and `expected_grounded` + `expected_answer_contains`. Written
+before running the pipeline against them. Covers: direct
 answers, rephrased questions, unknown entities, instruction overgeneralization, task recency across
 multiple updates (a stale answer citing only the first dictation is wrong), cross-app scope
 isolation in both directions (for both entities and instructions), global-scope retrieval,

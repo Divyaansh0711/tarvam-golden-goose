@@ -4,6 +4,4 @@ __pycache__/
 venv/
 .env
 db/kivi.db
-eval/results/*
-!eval/results/.gitkeep
 .DS_Store

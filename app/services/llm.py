@@ -80,7 +80,7 @@ def _call_tool_groq(*, model, system, user_message, tool_name, tool_description,
     client = _get_groq_client()
     tools = [{
         "type": "function",
-        "function": {"name": tool_name, "description": tool_description, "parameters": tool_schema},
+        "function": {"name": tool_name, "description": tool_description, "parameters": tool_schema, "strict": True},
     }]
 
     start = time.monotonic()
