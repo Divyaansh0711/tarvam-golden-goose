@@ -14,6 +14,9 @@ EXAMPLE_REQUESTS = [
     {"app": "email", "utterance": "Draft a follow-up email to the client."},
     {"app": "docs", "utterance": "Keep working on the PRD for voice search."},
     {"app": "slack", "utterance": "Message Priya about the launch timing."},
+    {"app": "slack", "utterance": "What's Rahul's role?"},
+    {"app": "docs", "utterance": "What's the current state of the PRD?"},
+    {"app": "docs", "utterance": "What's my favorite color?"},
     {"app": "docs", "utterance": "What's the weather like today?"},
 ]
 

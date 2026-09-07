@@ -5,18 +5,18 @@ inspectable afterward. This is the "context assembler" from the plan — it
 never hands the model a full dump of everything Kivi knows, only what's
 scoped to this app/persona and relevant to this one request.
 
-Grounded free-form Q&A ("question" intent) is recognized here but not yet
-answered — that's phase 5. Recognizing it correctly now (rather than
-forcing it into one of the three action tools) matters for the same reason
-restraint matters everywhere else in this system: a wrong guess is worse
-than an honest "not yet."
+Grounded free-form Q&A ("question" intent) is a fourth, separate path
+(app/services/qa.py) — recognizing it as its own intent (rather than
+forcing a question into one of the three action tools) matters for the same
+reason restraint matters everywhere else in this system: routing it
+correctly is what lets qa.py apply its own, stricter grounding guardrail.
 """
 import sqlite3
 import time
 
 from app.config import EXTRACTION_MODEL
 from app.services import memory_store as store
-from app.services import tools
+from app.services import qa, tools
 from app.services.llm import call_tool
 
 INTENT_SYSTEM_PROMPT = """You are Hey Kivi's intent router. You read one request a person made \
@@ -29,8 +29,9 @@ standing instruction might apply (e.g. "draft an email to the client", "write a 
 3. resume_task — the person wants to continue or reference a specific piece of ongoing work \
 (e.g. "keep working on the PRD", "finish the voice search doc").
 4. question — the person is asking Kivi to recall or tell them something from memory (e.g. \
-"what's Rahul's role", "what was I doing on the PRD"). This capability is not implemented yet — \
-still classify it correctly so Kivi can say so honestly instead of forcing it into another intent.
+"what's Rahul's role", "what was I doing on the PRD"). This is answered from memory directly, not \
+by resolving an entity or resuming a task — classify it as question even if it mentions a name or \
+a piece of work, whenever the person wants to be TOLD something rather than have Kivi ACT.
 5. no_memory_relevant — the request doesn't need any of Kivi's memory (e.g. "what's the weather", \
 "summarize this document").
 
@@ -98,22 +99,23 @@ def handle_request(conn: sqlite3.Connection, *, utterance: str, app: str, person
         task_ids = outcome.get("task_ids", [])
         dictation_ids = outcome.get("dictation_ids", [])
     elif intent == "question":
-        outcome = {
-            "result": "Grounded recall isn't available yet — Hey Kivi can act on entities, "
-                      "instructions, and open work, but can't yet answer free-form questions from memory.",
-            "grounded": False, "refused": True,
-        }
+        outcome = qa.answer_question(conn, question=utterance, app=app, persona=persona)
+        entity_ids = outcome.get("entity_ids", [])
+        instruction_ids = outcome.get("instruction_ids", [])
+        task_ids = outcome.get("task_ids", [])
+        dictation_ids = outcome.get("dictation_ids", [])
     else:
         outcome = {"result": "Nothing in Kivi's memory applies to this request.", "grounded": False, "refused": False}
 
     latency_ms = int((time.monotonic() - start) * 1000)
+    reasoning = outcome.get("reasoning") or routing.get("reasoning", "")
 
     request_id = store.log_hey_kivi_request(
         conn, kind="action" if intent != "question" else "question", utterance=utterance, app=app,
         persona=persona, intent=intent, retrieved_entity_ids=entity_ids,
         retrieved_instruction_ids=instruction_ids, retrieved_task_ids=task_ids,
         retrieved_dictation_ids=dictation_ids, result_text=outcome["result"],
-        grounded=outcome["grounded"], refused=outcome["refused"], reasoning=routing.get("reasoning", ""),
+        grounded=outcome["grounded"], refused=outcome["refused"], reasoning=reasoning,
         latency_ms=latency_ms,
     )
     return request_id

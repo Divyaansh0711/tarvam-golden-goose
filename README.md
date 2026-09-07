@@ -61,6 +61,19 @@ plausibly present. The fix was a contrastive example in the prompt distinguishin
 need (knowing who Rahul is) from an incidental one (composing a message) — see the intent prompt
 in `hey_kivi.py`.
 
+**Grounded Q&A** (`app/services/qa.py`) answers free-form questions — "what's Rahul's role?",
+"what's the current state of the PRD?" — from confirmed memory scoped to the app, with every
+answer citing which entity/instruction/task (and, via `memory_events`, which source dictation(s))
+it came from. Two genuinely different "no" cases are both handled correctly: a question with no
+matching memory at all ("what's my favorite color?") and a question about someone Kivi has no
+entity for ("what's Priya's role?") — both produce an honest refusal, not a guess.
+
+The grounding guardrail is two-layered, not just a prompt instruction: the model must cite which
+memory item(s) it used, and a Python post-check independently verifies that a claimed answer with
+no citation gets downgraded to a refusal — verified with a mocked test that forces exactly that
+failure mode (the model claiming an answer while citing nothing), since it's hard to provoke from
+a well-behaved model in normal use but is exactly the case the guardrail exists for.
+
 ## Evaluation
 
 <!-- TODO(phase 7): how to read eval/results, what the numbers mean. -->
@@ -97,7 +110,7 @@ you're reviewing this and only have one provider's key, either works end-to-end;
 - [x] 2. Core memory store + manual CRUD + Memory screen
 - [x] 3. Ingestion + extraction pipeline + Dictation feed screen
 - [x] 4. Hey Kivi actions (entity resolution, instructions, task resume)
-- [ ] 5. Grounded Q&A + refusal handling
+- [x] 5. Grounded Q&A + refusal handling
 - [ ] 6. ~500-record corpus + QA testset
 - [ ] 7. Evaluation harness + results
 - [ ] 8. Corpus import path, reset flow, README/RUN.md finalization

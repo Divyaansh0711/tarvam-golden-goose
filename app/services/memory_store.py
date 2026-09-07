@@ -387,6 +387,23 @@ def list_recent_hey_kivi_requests(conn: sqlite3.Connection, limit: int = 20) -> 
     return results
 
 
+def get_source_dictation_ids(conn: sqlite3.Connection, memory_table: str, memory_id: int) -> list[int]:
+    """Every dictation that ever created or updated this memory item, per the
+    audit trail — not just the one stored at creation. Lets a merged/updated
+    entity cite its full history (e.g. a later dictation that changed a
+    role) without needing a separate accreting column, since memory_events
+    already recorded it."""
+    rows = conn.execute(
+        """
+        SELECT DISTINCT dictation_id FROM memory_events
+        WHERE memory_table = ? AND memory_id = ? AND dictation_id IS NOT NULL
+        ORDER BY dictation_id
+        """,
+        (memory_table, memory_id),
+    ).fetchall()
+    return [r["dictation_id"] for r in rows]
+
+
 def list_recent_dictations(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
     rows = conn.execute(
         "SELECT * FROM dictations ORDER BY id DESC LIMIT ?", (limit,)

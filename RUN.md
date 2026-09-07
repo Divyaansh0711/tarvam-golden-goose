@@ -2,9 +2,9 @@
 
 **Primary review method: completely local application, SQLite embedded database.**
 
-> Status: phase 4 of 8. Memory, Dictation feed, and Hey Kivi's three action tools (resolve an
-> entity, apply a standing instruction, resume a task) are all reviewable now. Grounded free-form
-> Q&A lands in phase 5.
+> Status: phase 5 of 8. Memory, Dictation feed, and Hey Kivi (three action tools plus grounded
+> Q&A) are all reviewable now. Remaining: the ~500-record corpus + eval harness + corpus import
+> (phases 6-8).
 
 ## 1. Runtimes and versions
 
@@ -64,7 +64,8 @@ http://127.0.0.1:8000
   decline rather than guess. Try "Draft a follow-up email to the client" to see the seeded CC
   instruction applied. For task resume, first create one via the Dictation feed (paste the PRD
   example), then ask Hey Kivi to "keep working on the PRD for voice search" in the same app.
-  Grounded Q&A ("what's Rahul's role?") is recognized but not yet answered (phase 5).
+  For grounded Q&A, try "What's Rahul's role?" (answered, cited) and "What's my favorite color?"
+  or "What's Priya's role?" (both correctly refused — no memory to support an answer).
 
 ## 8. Evaluation
 
