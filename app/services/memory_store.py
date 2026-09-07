@@ -54,6 +54,7 @@ def _decorate_task(row: sqlite3.Row) -> dict:
     d = row_to_dict(row)
     d["scope"] = loads(d.pop("scope_json"), {})
     d["source_dictation_ids"] = loads(d.pop("source_dictation_ids_json"), [])
+    d["recurring"] = bool(d["recurring"])
     return d
 
 
@@ -176,21 +177,25 @@ def create_task(
     scope: dict,
     reasoning: str,
     source_dictation_id: int | None = None,
+    status: str = "open",
+    recurring: bool = False,
 ) -> int:
-    expires_at = (datetime.utcnow() + timedelta(days=TASK_EXPIRY_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+    # A recurring commitment has no natural end, so it never gets an expiry —
+    # not even once confirmed. A one-off task expires after inactivity.
+    expires_at = None if recurring else (datetime.utcnow() + timedelta(days=TASK_EXPIRY_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
     source_ids = [source_dictation_id] if source_dictation_id else []
     cur = conn.execute(
         """
-        INSERT INTO tasks (label, app, last_state_summary, scope_json, source_dictation_ids_json, expires_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (label, app, last_state_summary, status, recurring, scope_json, source_dictation_ids_json, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (label, app, last_state_summary, dumps(scope), dumps(source_ids), expires_at),
+        (label, app, last_state_summary, status, int(recurring), dumps(scope), dumps(source_ids), expires_at),
     )
     task_id = cur.lastrowid
     log_event(
-        conn, action="confirmed", reasoning=reasoning, dictation_id=source_dictation_id,
-        candidate_type="task", memory_table="tasks", memory_id=task_id,
-        payload={"label": label, "last_state_summary": last_state_summary},
+        conn, action="proposed" if status == "pending" else "confirmed", reasoning=reasoning,
+        dictation_id=source_dictation_id, candidate_type="task", memory_table="tasks", memory_id=task_id,
+        payload={"label": label, "last_state_summary": last_state_summary, "recurring": recurring},
     )
     return task_id
 
@@ -262,11 +267,16 @@ def set_instruction_status(conn: sqlite3.Connection, instruction_id: int, status
     )
 
 
+_TASK_STATUS_TO_EVENT_ACTION = {
+    "open": "confirmed", "done": "updated", "expired": "expired", "rejected": "rejected",
+}
+
+
 def set_task_status(conn: sqlite3.Connection, task_id: int, status: str, reasoning: str) -> None:
     conn.execute("UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?", (status, _now(), task_id))
     log_event(
-        conn, action=status, reasoning=reasoning, candidate_type="task",
-        memory_table="tasks", memory_id=task_id,
+        conn, action=_TASK_STATUS_TO_EVENT_ACTION.get(status, "updated"), reasoning=reasoning,
+        candidate_type="task", memory_table="tasks", memory_id=task_id,
     )
 
 
@@ -322,24 +332,33 @@ def _label_tokens(label: str) -> set[str]:
     return {w for w in label.strip().lower().split() if w not in _STOPWORDS}
 
 
-def find_matching_task(conn: sqlite3.Connection, app: str, label: str, threshold: float = 0.4) -> dict | None:
+def find_matching_task(
+    conn: sqlite3.Connection, app: str, label: str, threshold: float = 0.4,
+    statuses: tuple[str, ...] = ("open",),
+) -> dict | None:
     """Match by word-overlap rather than exact substring, so 'PRD voice search'
     and 'PRD for voice search' are recognized as the same piece of work. This
     is a simple heuristic (Jaccard over non-stopword tokens), not semantic
     matching — documented as a known limitation, not a hidden claim of more.
-    Shared by extraction's task-accretion and Hey Kivi's resume_task tool."""
+    Shared by extraction's task-accretion and Hey Kivi's resume_task tool.
+
+    `statuses` defaults to open-only, since resume_task must never act on an
+    unconfirmed candidate. Extraction's own dedup passes ("open", "pending")
+    so a recurring commitment mentioned twice before confirmation doesn't
+    produce two separate pending proposals."""
     candidate_tokens = _label_tokens(label)
     best_match, best_score = None, 0.0
-    for task in list_tasks(conn, status="open"):
-        if task["app"] != app:
-            continue
-        existing_tokens = _label_tokens(task["label"])
-        if not candidate_tokens or not existing_tokens:
-            continue
-        overlap = candidate_tokens & existing_tokens
-        score = len(overlap) / len(candidate_tokens | existing_tokens)
-        if score > best_score:
-            best_match, best_score = task, score
+    for status in statuses:
+        for task in list_tasks(conn, status=status):
+            if task["app"] != app:
+                continue
+            existing_tokens = _label_tokens(task["label"])
+            if not candidate_tokens or not existing_tokens:
+                continue
+            overlap = candidate_tokens & existing_tokens
+            score = len(overlap) / len(candidate_tokens | existing_tokens)
+            if score > best_score:
+                best_match, best_score = task, score
     return best_match if best_score >= threshold else None
 
 

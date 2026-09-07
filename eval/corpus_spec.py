@@ -8,7 +8,7 @@ each spec as natural dictation text; it never decides what the "right
 answer" is. That separation is what keeps this an evaluation rather than "a
 collection of successful examples chosen after the system was built."
 
-Category counts (500 total), chosen to resemble real usage — mostly
+Category counts (512 total), chosen to resemble real usage — mostly
 ordinary dictation with nothing memory-worthy, plus enough of each edge case
 to reveal where the system succeeds, abstains, or fails:
 
@@ -19,6 +19,11 @@ to reveal where the system succeeds, abstains, or fails:
   ambiguous            25  hedged/uncertain — should not auto-confirm
   adversarial          25  hypothetical/reported/sarcastic — should extract nothing
   boundary_scope       20  8 same-name-different-app pairs (x2) + 4 explicit-global
+  recurring_task       12  8 recurring commitments (must be held for confirmation) + 4
+                            one-off controls (must NOT be over-flagged as recurring) —
+                            added after the initial 500-record generation, once
+                            recurring-commitment handling was built (see
+                            app/services/extraction.py's task_recurrence field)
 """
 import random
 from datetime import datetime, timedelta
@@ -372,6 +377,46 @@ def _key_phrase(text: str) -> str:
     return max(words, key=len) if words else text
 
 
+def _recurring_task(rng, n_recurring, n_one_off_control):
+    """Recurring commitments ('a weekly call with Rahul') have no natural end,
+    so they should be held for confirmation rather than auto-committed as an
+    ordinary task (see app/services/extraction.py's task_recurrence field).
+    The one-off controls are calendar-shaped statements that must NOT be
+    flagged as recurring, to check the extractor isn't over-triggering on
+    every calendar mention."""
+    specs = []
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    for _ in range(n_recurring):
+        name = rng.choice(NAMES)
+        day = rng.choice(days)
+        app = rng.choice(["calendar", "slack"])
+        specs.append(_mk(
+            rng, "recurring_task", app,
+            {
+                "extraction_type": "task", "expected_decision": "pending_confirmation",
+                "expected_task_recurrence": "recurring", "task_label_contains": name,
+                "notes": "recurring commitment with no natural end — must be held for confirmation, not auto-committed",
+            },
+            f"Dictate that you have a standing weekly commitment with {name} every {day} — phrase it "
+            f"clearly as an ongoing routine, not a one-time event.",
+        ))
+    for _ in range(n_one_off_control):
+        name = rng.choice(NAMES)
+        day = rng.choice(days)
+        app = rng.choice(["calendar", "slack"])
+        specs.append(_mk(
+            rng, "recurring_task", app,
+            {
+                "extraction_type": "task", "expected_decision": "created",
+                "expected_task_recurrence": "one_off", "task_label_contains": name,
+                "notes": "a single specific meeting, not recurring — must not be over-flagged as needing confirmation",
+            },
+            f"Dictate that you have a one-time call with {name} this coming {day} to discuss a specific "
+            f"topic — phrase it clearly as a single, specific meeting, not a routine.",
+        ))
+    return specs
+
+
 def build_specs(seed: int = 42) -> list[dict]:
     rng = random.Random(seed)
     specs = []
@@ -382,6 +427,7 @@ def build_specs(seed: int = 42) -> list[dict]:
     specs += _ambiguous(rng, 25)
     specs += _adversarial(rng, 25)
     specs += _boundary_scope(rng, 8, 4)
+    specs += _recurring_task(rng, 8, 4)
 
     # Shuffle at the group level, not the flat-record level: a threaded
     # record (seq=1, e.g. a task update) must never end up scheduled before

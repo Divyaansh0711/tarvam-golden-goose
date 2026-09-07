@@ -61,7 +61,11 @@ def answer_question(conn: sqlite3.Connection, *, question: str, app: str, person
         i for i in store.list_instructions(conn, "confirmed")
         if i["active"] and store.instruction_scope_matches(i["scope"], app, persona)
     ]
-    tasks = [t for t in store.list_tasks(conn) if t["app"] == app]
+    # Exclude 'pending' explicitly: a recurring-commitment candidate awaiting
+    # confirmation must never ground an answer, same as a pending entity or
+    # instruction — the row existing in the database is not the same as the
+    # user having confirmed it.
+    tasks = [t for t in store.list_tasks(conn) if t["app"] == app and t["status"] != "pending"]
 
     context = _format_context(entities, instructions, tasks)
     user_message = f"App: {app}\nMemory Kivi holds for this app:\n{context}\n\nQuestion: {question}"

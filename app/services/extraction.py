@@ -22,7 +22,10 @@ disambiguation), e.g. "that's Rahul from engineering, not the Rahul in finance."
 2. instruction — the person is stating a standing rule for their own future behaviour, in plain \
 language, e.g. "always CC my manager on client emails."
 3. task — the person is stating the current state of a specific, identifiable piece of ongoing \
-work, e.g. "I'm drafting the PRD for voice search, still need to add the metrics section."
+work, e.g. "I'm drafting the PRD for voice search, still need to add the metrics section." A task \
+can be a one-off deliverable (has a natural end state) OR a recurring commitment with no natural \
+end (e.g. "I have a weekly call with Rahul every Wednesday") — set `task_recurrence` to "one_off" \
+or "recurring" accordingly; for entity/instruction candidates set it to "not_applicable".
 
 Extract ONLY what is literally, explicitly stated. Do not infer, guess, or extrapolate — if the \
 transcript is ordinary dictation with no such statement (the common case), return an empty \
@@ -44,7 +47,13 @@ default, never inferred wider.
 
 `quote` must be an exact, verbatim substring of the transcript you were given. `reasoning` is one \
 sentence explaining, to a person auditing this later, why this is (or contributes to) a literal \
-statement rather than an inference."""
+statement rather than an inference.
+
+Note on recurring commitments: even when confidently and explicitly stated, a recurring task is \
+always held for the person to confirm before it's treated as permanent — a wrong guess there \
+would persist indefinitely, unlike a one-off task that naturally expires if unused. Set \
+confidence normally regardless; that gating happens after your response, not by lowering \
+confidence artificially."""
 
 CANDIDATE_ITEM_SCHEMA = {
     "type": "object",
@@ -55,6 +64,7 @@ CANDIDATE_ITEM_SCHEMA = {
         "confidence": {"type": "number"},
         "reasoning": {"type": "string"},
         "scope_hint": {"type": "string", "enum": ["this_app", "global"]},
+        "task_recurrence": {"type": "string", "enum": ["one_off", "recurring", "not_applicable"]},
         "entity_surface_forms": {"type": ["array", "null"], "items": {"type": "string"}},
         "entity_resolved_as": {"type": ["string", "null"]},
         "entity_role_context": {"type": ["string", "null"]},
@@ -63,7 +73,7 @@ CANDIDATE_ITEM_SCHEMA = {
         "task_state_summary": {"type": ["string", "null"]},
     },
     "required": [
-        "type", "quote", "confidence", "reasoning", "scope_hint",
+        "type", "quote", "confidence", "reasoning", "scope_hint", "task_recurrence",
         "entity_surface_forms", "entity_resolved_as", "entity_role_context",
         "instruction_rule_text", "task_label", "task_state_summary",
     ],
@@ -149,6 +159,27 @@ def _apply_instruction_candidate(conn: sqlite3.Connection, *, dictation_id: int,
 
 def _apply_task_candidate(conn: sqlite3.Connection, *, dictation_id: int, app: str, c: dict) -> dict:
     label = c["task_label"] or "untitled work"
+
+    if c.get("task_recurrence") == "recurring":
+        # A recurring commitment has no natural end, so confirming it wrong
+        # would persist indefinitely — held for confirmation regardless of
+        # confidence, the same discipline as entities/instructions, and
+        # unlike a one-off task (which is low-stakes enough to auto-commit
+        # since it just expires if it turns out to be wrong or stale).
+        existing = store.find_matching_task(conn, app, label, statuses=("open", "pending"))
+        if existing and existing["recurring"]:
+            return {
+                "type": "task", "decision": "duplicate_ignored", "memory_id": existing["id"],
+                "reasoning": "recurring commitment already tracked (confirmed or awaiting confirmation)",
+                "confidence": c["confidence"],
+            }
+        task_id = store.create_task(
+            conn, label=label, app=app, last_state_summary=c["task_state_summary"] or "",
+            scope=_scope_for(app, c["scope_hint"]), reasoning=c["reasoning"], source_dictation_id=dictation_id,
+            status="pending", recurring=True,
+        )
+        return {"type": "task", "decision": "pending_confirmation", "memory_id": task_id, "reasoning": c["reasoning"], "confidence": c["confidence"]}
+
     existing = store.find_matching_task(conn, app, label)
     if existing:
         store.append_task_progress(

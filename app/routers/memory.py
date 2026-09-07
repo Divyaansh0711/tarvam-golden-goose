@@ -20,6 +20,7 @@ def memory_page(request: Request):
             "instructions_confirmed": store.list_instructions(conn, "confirmed"),
             "instructions_pending": store.list_instructions(conn, "pending"),
             "tasks_open": store.list_tasks(conn, "open"),
+            "tasks_pending": store.list_tasks(conn, "pending"),
             "tasks_done": store.list_tasks(conn, "done"),
         }
     return templates.TemplateResponse("memory.html", context)
@@ -152,6 +153,20 @@ def update_task(task_id: int, last_state_summary: str = Form(...)):
 def complete_task(task_id: int):
     with get_db() as conn:
         store.set_task_status(conn, task_id, "done", reasoning="marked done by the user")
+    return RedirectResponse("/memory", status_code=303)
+
+
+@router.post("/memory/tasks/{task_id}/confirm")
+def confirm_task(task_id: int):
+    with get_db() as conn:
+        store.set_task_status(conn, task_id, "open", reasoning="confirmed as a permanent recurring commitment by the user")
+    return RedirectResponse("/memory", status_code=303)
+
+
+@router.post("/memory/tasks/{task_id}/reject")
+def reject_task(task_id: int):
+    with get_db() as conn:
+        store.set_task_status(conn, task_id, "rejected", reasoning="dismissed by the user from the pending inbox")
     return RedirectResponse("/memory", status_code=303)
 
 

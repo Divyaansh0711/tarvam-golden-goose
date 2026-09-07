@@ -58,7 +58,9 @@ http://127.0.0.1:8000
 - Visit `/dictations` — try the example transcripts (including the brief's own "Aditya/Kivi
   service" example). Try pasting ordinary dictation with nothing memory-worthy in it, and a
   hypothetical/reported statement ("if I were you, I'd always CC...") — both should correctly
-  produce no memory candidate.
+  produce no memory candidate. Try `I have a weekly mid-week call with Rahul on Wednesday` (app
+  `calendar`) — this should land in the Memory screen's pending inbox awaiting confirmation as a
+  recurring commitment, not auto-commit as an ordinary (expiring) task.
 - Visit `/hey-kivi` — with `--seed`, try "Message Rahul about the launch timing" (resolves via the
   seeded entity), then a name Kivi doesn't know (e.g. "Message Priya...") to see it correctly
   decline rather than guess. Try "Draft a follow-up email to the client" to see the seeded CC

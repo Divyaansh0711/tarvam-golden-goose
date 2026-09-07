@@ -74,9 +74,22 @@ no citation gets downgraded to a refusal — verified with a mocked test that fo
 failure mode (the model claiming an answer while citing nothing), since it's hard to provoke from
 a well-behaved model in normal use but is exactly the case the guardrail exists for.
 
+**Recurring commitments** ("I have a weekly call with Rahul on Wednesday") don't fit any of the
+three types cleanly — not an identity statement, not a behavioral rule, and not a one-off task with
+a natural end. Forcing one into ordinary task memory would give it the wrong lifecycle: tasks
+auto-expire after 14 days of inactivity, which is wrong for a standing commitment with no end at
+all. The extractor detects this distinction explicitly (`task_recurrence: "recurring"` vs.
+`"one_off"` in `app/services/extraction.py`) and, when recurring, holds the candidate for
+confirmation exactly like an entity or instruction would — regardless of confidence — rather than
+auto-committing it, since a wrong guess there would otherwise persist indefinitely. Confirming it
+clears its expiry permanently. This was added mid-build after testing surfaced the gap; see
+`eval/corpus_spec.py`'s `recurring_task` category and `eval/qa_testset.jsonl`'s q019 for how it's
+evaluated, including a one-off calendar mention deliberately included to check the extractor
+doesn't over-flag ordinary meetings as recurring.
+
 ## Evaluation
 
-The corpus (500 records) and Q&A test set (18 hand-authored cases) are documented in
+The corpus (512 records) and Q&A test set (19 hand-authored cases) are documented in
 `eval/README.md`, including how their expected outcomes were decided independently of any model
 output. The harness that runs them and reports results lands in phase 7.
 

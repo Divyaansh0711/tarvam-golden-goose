@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import GENERATION_MODEL
 from app.services.llm import call_tool_raw
-from eval.corpus_spec import build_specs
+from eval.corpus_spec import _dt, build_specs
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "eval" / "corpus" / "dictations.jsonl"
 
@@ -86,14 +86,36 @@ def main() -> None:
     parser.add_argument("--pilot", type=int, default=None, help="only generate the first N specs")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--append-category", default=None,
+        help="Generate only specs from this category and APPEND them to the existing corpus "
+             "file with fresh, continuing ids — for adding a new category after the main corpus "
+             "was already generated and committed, without reshuffling/invalidating it.",
+    )
     args = parser.parse_args()
 
-    specs = build_specs(seed=args.seed)
+    existing_records = []
+    if args.append_category:
+        if not OUT_PATH.exists():
+            raise SystemExit(f"--append-category requires an existing corpus at {OUT_PATH}")
+        with open(OUT_PATH) as f:
+            existing_records = [json.loads(line) for line in f]
+        specs = [s for s in build_specs(seed=args.seed) if s["category"] == args.append_category]
+        # Reassign ids/timestamps to continue the existing file's numbering,
+        # ignoring wherever this category landed in the full shuffle.
+        for offset, spec in enumerate(specs):
+            index = len(existing_records) + offset
+            spec["id"] = f"c{index + 1:04d}"
+            spec["occurred_at"] = _dt(index)
+        print(f"appending {len(specs)} '{args.append_category}' records after the existing {len(existing_records)}")
+    else:
+        specs = build_specs(seed=args.seed)
+
     if args.pilot:
         specs = specs[: args.pilot]
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    records = []
+    records = list(existing_records)
     n_batches = (len(specs) + args.batch_size - 1) // args.batch_size
 
     for b in range(n_batches):
@@ -118,13 +140,16 @@ def main() -> None:
                 "expected": spec["expected"], "adversarial": spec["adversarial"],
                 "group": spec["group"], "seq": spec["seq"],
             })
-        print(f"batch {b + 1}/{n_batches} done ({len(records)}/{len(specs)} records)")
+        print(f"batch {b + 1}/{n_batches} done ({len(records) - len(existing_records)}/{len(specs)} new records)")
 
     with open(OUT_PATH, "w") as f:
         for r in records:
             f.write(json.dumps(r) + "\n")
 
-    print(f"\nWrote {len(records)} records to {OUT_PATH}")
+    if existing_records:
+        print(f"\nAppended {len(records) - len(existing_records)} records; {len(records)} total in {OUT_PATH}")
+    else:
+        print(f"\nWrote {len(records)} records to {OUT_PATH}")
 
 
 if __name__ == "__main__":

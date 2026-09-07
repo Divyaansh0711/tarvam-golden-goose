@@ -4,10 +4,25 @@
 <h1>Memory</h1>
 <p class="lede">Everything Kivi currently remembers. Every entry shows what it was told and can be corrected or removed in one click — the same as fixing a mispronunciation.</p>
 
-{% if entities_pending or instructions_pending %}
+{% if entities_pending or instructions_pending or tasks_pending %}
 <section class="pending-inbox">
   <h2>Pending confirmation</h2>
   <p class="muted">These were extracted from something you said, but weren't unambiguous enough to commit automatically. Nothing here affects Hey Kivi until you confirm it.</p>
+
+  {% for t in tasks_pending %}
+  <div class="mem-card pending">
+    <div class="mem-main">
+      <span class="tag">task &middot; recurring?</span>
+      <strong>{{ t.label }}</strong>
+      <p class="muted">{{ t.last_state_summary }}</p>
+      <p class="quote">Kivi thinks this might be a permanent, recurring commitment with no end date — confirm to remember it as ongoing, or dismiss if it's a one-off.</p>
+    </div>
+    <div class="mem-actions">
+      <form method="post" action="/memory/tasks/{{ t.id }}/confirm"><button class="primary" type="submit">Confirm as ongoing</button></form>
+      <form method="post" action="/memory/tasks/{{ t.id }}/reject"><button type="submit">Dismiss</button></form>
+    </div>
+  </div>
+  {% endfor %}
 
   {% for e in entities_pending %}
   <div class="mem-card pending">
@@ -128,7 +143,7 @@
       <span class="tag">{{ t.app }}</span>
       <p class="muted">{{ t.last_state_summary }}</p>
       <span class="tag">seen in {{ t.source_dictation_ids | length }} dictation(s)</span>
-      <span class="tag">expires {{ t.expires_at }}</span>
+      {% if t.recurring %}<span class="tag">recurring &middot; no expiry</span>{% else %}<span class="tag">expires {{ t.expires_at }}</span>{% endif %}
     </div>
     <div class="mem-actions">
       <details>
