@@ -107,6 +107,29 @@ def _call_tool_groq(*, model, system, user_message, tool_name, tool_description,
 _PROVIDER_IMPLS = {"anthropic": _call_tool_anthropic, "groq": _call_tool_groq}
 
 
+def call_tool_raw(
+    *,
+    model: str,
+    system: str,
+    user_message: str,
+    tool_name: str,
+    tool_description: str,
+    tool_schema: dict,
+    max_tokens: int = 1024,
+) -> tuple[dict, dict]:
+    """Force a single call to `tool_name` and return (parsed_input, call_stats),
+    dispatched to the configured provider — with no database logging. This is
+    the primitive call_tool() wraps; use it directly only for tooling that
+    genuinely isn't part of the product's own runtime (e.g. offline eval
+    corpus generation), so model_calls stays a true record of product usage,
+    not dev-time scaffolding."""
+    impl = _PROVIDER_IMPLS[LLM_PROVIDER]
+    return impl(
+        model=model, system=system, user_message=user_message, tool_name=tool_name,
+        tool_description=tool_description, tool_schema=tool_schema, max_tokens=max_tokens,
+    )
+
+
 def call_tool(
     *,
     conn: sqlite3.Connection,
@@ -121,13 +144,11 @@ def call_tool(
     related_request_id: int | None = None,
     max_tokens: int = 1024,
 ) -> tuple[dict, dict]:
-    """Force a single call to `tool_name` and return (parsed_input, call_stats).
-
-    Dispatches to the configured provider (app.config.LLM_PROVIDER); callers
-    don't need to know or care which one is behind it.
-    """
-    impl = _PROVIDER_IMPLS[LLM_PROVIDER]
-    parsed, stats = impl(
+    """Force a single call to `tool_name`, log it to model_calls, and return
+    (parsed_input, call_stats). Dispatches to the configured provider
+    (app.config.LLM_PROVIDER); callers don't need to know or care which one
+    is behind it."""
+    parsed, stats = call_tool_raw(
         model=model, system=system, user_message=user_message, tool_name=tool_name,
         tool_description=tool_description, tool_schema=tool_schema, max_tokens=max_tokens,
     )

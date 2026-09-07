@@ -2,9 +2,9 @@
 
 **Primary review method: completely local application, SQLite embedded database.**
 
-> Status: phase 5 of 8. Memory, Dictation feed, and Hey Kivi (three action tools plus grounded
-> Q&A) are all reviewable now. Remaining: the ~500-record corpus + eval harness + corpus import
-> (phases 6-8).
+> Status: phase 6 of 8. Memory, Dictation feed, and Hey Kivi (three action tools plus grounded
+> Q&A) are all reviewable now, plus the full ~500-record eval corpus and Q&A test set (see
+> `eval/README.md`). Remaining: the eval harness itself + corpus import (phases 7-8).
 
 ## 1. Runtimes and versions
 

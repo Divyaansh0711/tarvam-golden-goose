@@ -76,7 +76,9 @@ a well-behaved model in normal use but is exactly the case the guardrail exists 
 
 ## Evaluation
 
-<!-- TODO(phase 7): how to read eval/results, what the numbers mean. -->
+The corpus (500 records) and Q&A test set (18 hand-authored cases) are documented in
+`eval/README.md`, including how their expected outcomes were decided independently of any model
+output. The harness that runs them and reports results lands in phase 7.
 
 ## Limitations
 
@@ -111,6 +113,6 @@ you're reviewing this and only have one provider's key, either works end-to-end;
 - [x] 3. Ingestion + extraction pipeline + Dictation feed screen
 - [x] 4. Hey Kivi actions (entity resolution, instructions, task resume)
 - [x] 5. Grounded Q&A + refusal handling
-- [ ] 6. ~500-record corpus + QA testset
+- [x] 6. ~500-record corpus + QA testset
 - [ ] 7. Evaluation harness + results
 - [ ] 8. Corpus import path, reset flow, README/RUN.md finalization
