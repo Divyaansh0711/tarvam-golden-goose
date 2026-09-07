@@ -22,10 +22,12 @@ disambiguation), e.g. "that's Rahul from engineering, not the Rahul in finance."
 2. instruction — the person is stating a standing rule for their own future behaviour, in plain \
 language, e.g. "always CC my manager on client emails."
 3. task — the person is stating the current state of a specific, identifiable piece of ongoing \
-work, e.g. "I'm drafting the PRD for voice search, still need to add the metrics section." A task \
-can be a one-off deliverable (has a natural end state) OR a recurring commitment with no natural \
-end (e.g. "I have a weekly call with Rahul every Wednesday") — set `task_recurrence` to "one_off" \
-or "recurring" accordingly; for entity/instruction candidates set it to "not_applicable".
+work that has actual STATE to track — multiple parts, progress that develops, or content that \
+accumulates across dictations, e.g. "I'm drafting the PRD for voice search, still need to add the \
+metrics section." A task can be a one-off deliverable (has a natural end state) OR a recurring \
+commitment with no natural end (e.g. "I have a weekly call with Rahul every Wednesday") — set \
+`task_recurrence` to "one_off" or "recurring" accordingly; for entity/instruction candidates set \
+it to "not_applicable".
 
 Extract ONLY what is literally, explicitly stated. Do not infer, guess, or extrapolate — if the \
 transcript is ordinary dictation with no such statement (the common case), return an empty \
@@ -35,6 +37,9 @@ candidates list. Do NOT create a candidate from:
 - emotional state, relationship quality, opinions, or any personal fact not stated as a literal \
 identity/instruction/task fact
 - a name or app mentioned only in passing, with no clarifying/instructing/task-stating intent
+- a single-step reminder or errand with no state to track ("remind me to buy milk", "don't forget \
+to call the dentist") — there's nothing to check back on later, so this is not task memory; it's \
+an ordinary reminder outside what Kivi's memory is for here
 
 `confidence` should be near 1.0 only for unambiguous, self-contained, directly-stated facts. Use \
 a lower confidence (below 0.85) for anything that requires resolving an ambiguous pronoun, is \
