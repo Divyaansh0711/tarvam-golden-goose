@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Dictation feed — Kivi{% endblock %}
+{% block content %}
+<h1>Dictation feed</h1>
+<p class="lede">There's no real ASR here — paste or pick a transcript and watch Kivi decide whether it contains anything worth remembering. Most dictation should produce nothing; that's the expected outcome, not a bug.</p>
+
+<div class="examples">
+  {% for ex in examples %}
+  <button type="button" class="tag example-btn" data-app="{{ ex.app }}" data-raw="{{ ex.raw_asr }}" data-formatted="{{ ex.formatted_text }}">{{ ex.app }}: “{{ ex.formatted_text[:40] }}{{ '…' if ex.formatted_text|length > 40 }}”</button>
+  {% endfor %}
+</div>
+
+<form method="post" action="/dictations" class="dictation-form">
+  <label>App
+    <input name="app" id="app-input" placeholder="e.g. slack, email, docs" required>
+  </label>
+  <label>Raw ASR output
+    <textarea name="raw_asr" id="raw-input" rows="2" placeholder="lowercase, unpunctuated, as the speech model would output it" required></textarea>
+  </label>
+  <label>Formatted output
+    <textarea name="formatted_text" id="formatted-input" rows="2" placeholder="after Kivi's language model cleans it up" required></textarea>
+  </label>
+  <button class="primary" type="submit">Process</button>
+</form>
+
+{% if highlight_dictation %}
+<section class="result-panel">
+  <h2>Result</h2>
+  <p class="quote">&ldquo;{{ highlight_dictation.formatted_text }}&rdquo; <span class="tag">{{ highlight_dictation.app }}</span></p>
+  {% set extracted = highlight_events | selectattr('action', 'equalto', 'extracted') | list %}
+  {% if extracted and not extracted[0].payload.candidates %}
+    <p class="muted">Nothing to remember here — no literal, explicit statement found. This is the expected outcome for most dictation.</p>
+  {% endif %}
+  {% for e in highlight_events %}
+    {% if e.action != 'extracted' %}
+    <div class="event-row">
+      <span class="tag">{{ e.candidate_type }}</span>
+      <span class="tag">{{ e.action }}</span>
+      {% if e.confidence %}<span class="tag">confidence {{ '%.0f' % (e.confidence * 100) }}%</span>{% endif %}
+      <p class="muted">{{ e.reasoning }}</p>
+    </div>
+    {% endif %}
+  {% endfor %}
+  <p><a href="/memory">View in Memory →</a></p>
+</section>
+{% endif %}
+
+<section>
+  <h2>Recent dictations</h2>
+  {% if not recent %}<p class="muted">Nothing processed yet.</p>{% endif %}
+  {% for d in recent %}
+  <div class="mem-card">
+    <div class="mem-main">
+      <span class="tag">{{ d.app }}</span>
+      <span class="tag">{{ summaries[d.id] }}</span>
+      <p class="muted">{{ d.formatted_text }}</p>
+    </div>
+    <div class="mem-actions">
+      <a href="/dictations?highlight={{ d.id }}"><button type="button">Details</button></a>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<script>
+document.querySelectorAll('.example-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.getElementById('app-input').value = btn.dataset.app;
+    document.getElementById('raw-input').value = btn.dataset.raw;
+    document.getElementById('formatted-input').value = btn.dataset.formatted;
+  });
+});
+</script>
+{% endblock %}

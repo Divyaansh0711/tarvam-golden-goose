@@ -285,6 +285,46 @@ def delete_task(conn: sqlite3.Connection, task_id: int, reasoning: str) -> None:
     conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
 
 
+def list_recent_dictations(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM dictations ORDER BY id DESC LIMIT ?", (limit,)
+    ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+def get_dictation(conn: sqlite3.Connection, dictation_id: int) -> dict | None:
+    row = conn.execute("SELECT * FROM dictations WHERE id = ?", (dictation_id,)).fetchone()
+    return row_to_dict(row) if row else None
+
+
+def list_events_for_dictation(conn: sqlite3.Connection, dictation_id: int) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM memory_events WHERE dictation_id = ? ORDER BY id", (dictation_id,)
+    ).fetchall()
+    events = []
+    for r in rows:
+        d = row_to_dict(r)
+        d["payload"] = loads(d.pop("payload_json"), {})
+        events.append(d)
+    return events
+
+
+def event_summary_for_dictation(conn: sqlite3.Connection, dictation_id: int) -> str:
+    events = list_events_for_dictation(conn, dictation_id)
+    extracted = next((e for e in events if e["action"] == "extracted"), None)
+    if not extracted:
+        return "not processed"
+    candidates = extracted["payload"].get("candidates", [])
+    if not candidates:
+        return "nothing to remember"
+    parts = []
+    for e in events:
+        if e["action"] in ("confirmed", "proposed", "updated") and e["candidate_type"]:
+            label = {"confirmed": "remembered", "proposed": "pending confirmation", "updated": "updated"}[e["action"]]
+            parts.append(f"{e['candidate_type']} {label}")
+    return "; ".join(parts) if parts else f"{len(candidates)} candidate(s)"
+
+
 def expire_stale_tasks(conn: sqlite3.Connection) -> int:
     rows = conn.execute(
         "SELECT id FROM tasks WHERE status = 'open' AND expires_at IS NOT NULL AND expires_at < ?", (_now(),)

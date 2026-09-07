@@ -9,7 +9,7 @@ MIGRATIONS_DIR = BASE_DIR / "db" / "migrations"
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # Cheap/fast model for high-volume extraction & intent classification.
-EXTRACTION_MODEL = os.environ.get("KIVI_EXTRACTION_MODEL", "claude-haiku-4-5-20251001")
+EXTRACTION_MODEL = os.environ.get("KIVI_EXTRACTION_MODEL", "claude-haiku-4-5")
 # Stronger model for Hey Kivi generation, tool use, and grounded Q&A.
 GENERATION_MODEL = os.environ.get("KIVI_GENERATION_MODEL", "claude-sonnet-5")
 

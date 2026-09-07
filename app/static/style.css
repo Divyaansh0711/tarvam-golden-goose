@@ -189,3 +189,37 @@ input, textarea {
   border-radius: 10px;
 }
 .add-form input { flex: 1 1 180px; }
+
+.examples { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.example-btn { cursor: pointer; border: none; }
+.example-btn:hover { border-color: var(--accent); background: var(--card-bg); }
+
+.dictation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  max-width: 640px;
+}
+.dictation-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.dictation-form textarea { font-family: inherit; resize: vertical; }
+.dictation-form button { align-self: flex-start; }
+
+.result-panel {
+  margin-top: 28px;
+  background: #f0f6e8;
+  border: 1px solid #cfe3b4;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+.event-row { padding: 8px 0; border-top: 1px solid var(--border); }
+.event-row:first-of-type { border-top: none; }
