@@ -49,11 +49,27 @@ This README, the code, and the evaluation harness were built with Claude Code, w
 product position in `docs/POSITIONING.md` / `docs/VISION.md`, which were written independently and
 without AI assistance, per the brief's requirement for Part One.
 
+## A note on the LLM provider
+
+The documented, primary provider is **Anthropic** (`ANTHROPIC_API_KEY`, `claude-haiku-4-5` for
+extraction, `claude-sonnet-5` for generation) — see `app/services/llm.py`. Mid-build, no Anthropic
+key was available, so a temporary alternative was added behind the same interface: **Groq**
+(`GROQ_API_KEY`, `openai/gpt-oss-120b`), auto-selected only when no Anthropic key is set. Every
+caller (`extraction.py`, and Hey Kivi's tools later) goes through one `call_tool()` function and
+never knows which provider answered — swapping back is a one-file change, not a rewrite.
+
+This is disclosed rather than quietly defaulted because it's a real trade-off, not a neutral
+choice: Groq's open-weight model has looser guarantees on the "extract only literal, explicit
+statements, do nothing for ordinary dictation" discipline the eval is built to measure, and cost
+for Groq calls is intentionally left untracked (`$0` in `model_calls`) rather than estimated. If
+you're reviewing this and only have one provider's key, either works end-to-end; the numbers in
+`eval/results` should be read as produced by whichever provider was configured at run time.
+
 ## Build phases (tracking)
 
 - [x] 1. Scaffolding — repo layout, FastAPI skeleton, schema, docs, config
 - [x] 2. Core memory store + manual CRUD + Memory screen
-- [ ] 3. Ingestion + extraction pipeline + Dictation feed screen
+- [x] 3. Ingestion + extraction pipeline + Dictation feed screen
 - [ ] 4. Hey Kivi actions (entity resolution, instructions, task resume)
 - [ ] 5. Grounded Q&A + refusal handling
 - [ ] 6. ~500-record corpus + QA testset

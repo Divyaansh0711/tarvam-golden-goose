@@ -2,8 +2,9 @@
 
 **Primary review method: completely local application, SQLite embedded database.**
 
-> Status: phase 2 of 8. The Memory screen is reviewable now (view/add/edit/confirm/dismiss/forget
-> entities, instructions, and tasks). Dictation feed and Hey Kivi land in phases 3-5.
+> Status: phase 3 of 8. Memory (view/add/edit/confirm/dismiss/forget) and the Dictation feed
+> (paste a transcript, see what Kivi extracted and why) are both reviewable now. Hey Kivi lands in
+> phases 4-5.
 
 ## 1. Runtimes and versions
 
@@ -13,8 +14,14 @@
 
 Copy `.env.example` to `.env` and fill in:
 
-- `ANTHROPIC_API_KEY` — required from phase 3 onward (extraction/generation calls). Not required
-  for phase 1.
+- `ANTHROPIC_API_KEY` — the documented provider for submission. Required from phase 3 onward
+  (extraction/generation calls); not required for phases 1-2.
+- `GROQ_API_KEY` — a temporary dev-time alternative to `ANTHROPIC_API_KEY`, added mid-build while
+  no Anthropic key was available (see `app/services/llm.py`). If both are unset or only Groq is
+  set, the app auto-selects Groq; set `KIVI_LLM_PROVIDER=anthropic` explicitly to force Anthropic
+  once a key exists. **This submission's primary review path uses Anthropic** — see README for
+  why Groq isn't the recommended long-term provider (weaker guarantees on the "extract only
+  literal statements" discipline the eval depends on).
 
 ## 3. Install dependencies
 
@@ -42,13 +49,17 @@ uvicorn app.main:app --reload
 
 http://127.0.0.1:8000
 
-## 7. Primary interactions to try (phase 2)
+## 7. Primary interactions to try (phase 3)
 
 - Visit `/healthz` — confirms the database exists and lists its tables.
 - Visit `/memory` — with `--seed`, you'll see a confirmed entity (Rahul) and instruction (CC
   manager on client emails). Try: editing an entity, adding a new instruction manually, marking a
   task done, deleting something and confirming it's gone.
-- Dictation feed and Hey Kivi (`/dictations`, `/hey-kivi`) are not built yet (phases 3-5).
+- Visit `/dictations` — try the example transcripts (including the brief's own "Aditya/Kivi
+  service" example). Try pasting ordinary dictation with nothing memory-worthy in it, and a
+  hypothetical/reported statement ("if I were you, I'd always CC...") — both should correctly
+  produce no memory candidate.
+- Hey Kivi (`/hey-kivi`) is not built yet (phases 4-5).
 
 ## 8. Evaluation
 

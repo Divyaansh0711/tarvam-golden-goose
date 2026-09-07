@@ -2,16 +2,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-load_dotenv()
-
-from app.db import get_db  # noqa: E402  (after load_dotenv, before use)
-from app.routers import dictations, memory  # noqa: E402
+from app.db import get_db  # loading this first also loads .env via app.config
+from app.routers import dictations, memory
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
