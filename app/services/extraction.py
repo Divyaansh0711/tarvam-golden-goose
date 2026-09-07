@@ -104,50 +104,9 @@ def _scope_for(app: str, scope_hint: str) -> dict:
     return {"global": True} if scope_hint == "global" else {"apps": [app]}
 
 
-def _find_matching_entity(conn: sqlite3.Connection, app: str, surface_forms: list[str]) -> dict | None:
-    normalized = {s.strip().lower() for s in surface_forms}
-    for entity in store.list_entities(conn):
-        if entity["status"] == "rejected":
-            continue
-        scope = entity["scope"]
-        if not scope.get("global") and app not in scope.get("apps", []):
-            continue
-        existing = {s.strip().lower() for s in entity["surface_forms"]}
-        if normalized & existing:
-            return entity
-    return None
-
-
-_STOPWORDS = {"the", "a", "an", "for", "of", "on", "in", "to", "and", "my"}
-
-
-def _label_tokens(label: str) -> set[str]:
-    return {w for w in label.strip().lower().split() if w not in _STOPWORDS}
-
-
-def _find_matching_task(conn: sqlite3.Connection, app: str, label: str) -> dict | None:
-    """Match by word-overlap rather than exact substring, so 'PRD voice search'
-    and 'PRD for voice search' are recognized as the same piece of work. This
-    is a simple heuristic (Jaccard over non-stopword tokens), not semantic
-    matching — documented as a known limitation, not a hidden claim of more."""
-    candidate_tokens = _label_tokens(label)
-    best_match, best_score = None, 0.0
-    for task in store.list_tasks(conn, status="open"):
-        if task["app"] != app:
-            continue
-        existing_tokens = _label_tokens(task["label"])
-        if not candidate_tokens or not existing_tokens:
-            continue
-        overlap = candidate_tokens & existing_tokens
-        score = len(overlap) / len(candidate_tokens | existing_tokens)
-        if score > best_score:
-            best_match, best_score = task, score
-    return best_match if best_score >= 0.4 else None
-
-
 def _apply_entity_candidate(conn: sqlite3.Connection, *, dictation_id: int, app: str, c: dict) -> dict:
     surface_forms = c["entity_surface_forms"] or [c["entity_resolved_as"]]
-    existing = _find_matching_entity(conn, app, surface_forms)
+    existing = store.find_matching_entity(conn, app, surface_forms)
     if existing:
         store.update_entity(
             conn, existing["id"], resolved_as=c["entity_resolved_as"] or existing["resolved_as"],
@@ -173,8 +132,7 @@ def _apply_instruction_candidate(conn: sqlite3.Connection, *, dictation_id: int,
     for instr in store.list_instructions(conn):
         if instr["status"] == "rejected":
             continue
-        scope = instr["scope"]
-        if scope.get("app") not in (app, None):
+        if not store.instruction_scope_matches(instr["scope"], app, persona=None):
             continue
         if instr["rule_text"].strip().lower() == rule_norm:
             return {"type": "instruction", "decision": "duplicate_ignored", "memory_id": instr["id"], "reasoning": "identical standing instruction already remembered", "confidence": c["confidence"]}
@@ -191,7 +149,7 @@ def _apply_instruction_candidate(conn: sqlite3.Connection, *, dictation_id: int,
 
 def _apply_task_candidate(conn: sqlite3.Connection, *, dictation_id: int, app: str, c: dict) -> dict:
     label = c["task_label"] or "untitled work"
-    existing = _find_matching_task(conn, app, label)
+    existing = store.find_matching_task(conn, app, label)
     if existing:
         store.append_task_progress(
             conn, task_id=existing["id"], last_state_summary=c["task_state_summary"] or existing["last_state_summary"],

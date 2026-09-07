@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.db import get_db  # loading this first also loads .env via app.config
-from app.routers import dictations, memory
+from app.routers import dictations, hey_kivi, memory
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -18,6 +18,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 app.include_router(memory.router)
 app.include_router(dictations.router)
+app.include_router(hey_kivi.router)
 
 
 @app.get("/healthz")

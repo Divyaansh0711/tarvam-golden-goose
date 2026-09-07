@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Hey Kivi{% endblock %}
+{% block content %}
+<h1>Hey Kivi</h1>
+<p class="lede">Ask Kivi to act, in the context of one app. Kivi only ever uses memory scoped to that app (plus anything explicitly marked global) — never everything it knows at once.</p>
+
+<div class="examples">
+  {% for ex in examples %}
+  <button type="button" class="tag example-btn" data-app="{{ ex.app }}" data-utterance="{{ ex.utterance }}">{{ ex.app }}: “{{ ex.utterance }}”</button>
+  {% endfor %}
+</div>
+
+<form method="post" action="/hey-kivi" class="dictation-form">
+  <label>App
+    <input name="app" id="hk-app-input" placeholder="e.g. slack, email, docs" required>
+  </label>
+  <label>Persona (optional)
+    <input name="persona" id="hk-persona-input" placeholder="e.g. work, personal">
+  </label>
+  <label>Request
+    <textarea name="utterance" id="hk-utterance-input" rows="2" placeholder="e.g. Message Rahul about the launch timing." required></textarea>
+  </label>
+  <button class="primary" type="submit">Ask Hey Kivi</button>
+</form>
+
+{% if highlight_request %}
+<section class="result-panel">
+  <h2>Result</h2>
+  <p class="quote">&ldquo;{{ highlight_request.utterance }}&rdquo; <span class="tag">{{ highlight_request.app }}</span>{% if highlight_request.persona %}<span class="tag">{{ highlight_request.persona }}</span>{% endif %}</p>
+  <p><strong>{{ highlight_request.result_text }}</strong></p>
+  <div class="event-row">
+    <span class="tag">intent: {{ highlight_request.intent }}</span>
+    <span class="tag">{{ 'grounded' if highlight_request.grounded else ('declined / abstained' if highlight_request.refused else 'no memory needed') }}</span>
+    <p class="muted">{{ highlight_request.reasoning }}</p>
+  </div>
+
+  {% if citations.entities %}
+  <div class="event-row"><strong>Entity used:</strong>
+    {% for e in citations.entities %}<span class="tag">{{ e.resolved_as }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% if citations.instructions %}
+  <div class="event-row"><strong>Instruction(s) applied:</strong>
+    {% for i in citations.instructions %}<span class="tag">{{ i.rule_text }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% if citations.tasks %}
+  <div class="event-row"><strong>Task resumed:</strong>
+    {% for t in citations.tasks %}<span class="tag">{{ t.label }} — {{ t.last_state_summary }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% if citations.dictations %}
+  <div class="event-row"><strong>Source dictation(s):</strong>
+    {% for d in citations.dictations %}<p class="muted quote">&ldquo;{{ d.formatted_text }}&rdquo;</p>{% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section>
+  <h2>Recent requests</h2>
+  {% if not recent %}<p class="muted">Nothing asked yet.</p>{% endif %}
+  {% for r in recent %}
+  <div class="mem-card">
+    <div class="mem-main">
+      <span class="tag">{{ r.app }}</span>
+      <span class="tag">{{ r.intent }}</span>
+      <p class="muted">&ldquo;{{ r.utterance }}&rdquo;</p>
+      <p>{{ r.result_text }}</p>
+    </div>
+    <div class="mem-actions">
+      <a href="/hey-kivi?highlight={{ r.id }}"><button type="button">Details</button></a>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<script>
+document.querySelectorAll('.example-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.getElementById('hk-app-input').value = btn.dataset.app;
+    document.getElementById('hk-utterance-input').value = btn.dataset.utterance;
+  });
+});
+</script>
+{% endblock %}

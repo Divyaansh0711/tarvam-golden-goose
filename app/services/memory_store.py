@@ -285,6 +285,108 @@ def delete_task(conn: sqlite3.Connection, task_id: int, reasoning: str) -> None:
     conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
 
 
+def entity_scope_matches(scope: dict, app: str) -> bool:
+    return bool(scope.get("global")) or app in scope.get("apps", [])
+
+
+def instruction_scope_matches(scope: dict, app: str, persona: str | None) -> bool:
+    scope_app = scope.get("app")
+    scope_persona = scope.get("persona")
+    if scope_app and scope_app != app:
+        return False
+    if scope_persona and scope_persona != persona:
+        return False
+    return True
+
+
+def find_matching_entity(conn: sqlite3.Connection, app: str, surface_forms: list[str]) -> dict | None:
+    """Case-insensitive surface-form match, scoped to the given app (or
+    global-scope entities). Shared by extraction's dedup and Hey Kivi's
+    resolve_entity tool, so both use exactly the same notion of a match."""
+    normalized = {s.strip().lower() for s in surface_forms}
+    for entity in list_entities(conn):
+        if entity["status"] == "rejected":
+            continue
+        if not entity_scope_matches(entity["scope"], app):
+            continue
+        existing = {s.strip().lower() for s in entity["surface_forms"]}
+        if normalized & existing:
+            return entity
+    return None
+
+
+_STOPWORDS = {"the", "a", "an", "for", "of", "on", "in", "to", "and", "my"}
+
+
+def _label_tokens(label: str) -> set[str]:
+    return {w for w in label.strip().lower().split() if w not in _STOPWORDS}
+
+
+def find_matching_task(conn: sqlite3.Connection, app: str, label: str, threshold: float = 0.4) -> dict | None:
+    """Match by word-overlap rather than exact substring, so 'PRD voice search'
+    and 'PRD for voice search' are recognized as the same piece of work. This
+    is a simple heuristic (Jaccard over non-stopword tokens), not semantic
+    matching — documented as a known limitation, not a hidden claim of more.
+    Shared by extraction's task-accretion and Hey Kivi's resume_task tool."""
+    candidate_tokens = _label_tokens(label)
+    best_match, best_score = None, 0.0
+    for task in list_tasks(conn, status="open"):
+        if task["app"] != app:
+            continue
+        existing_tokens = _label_tokens(task["label"])
+        if not candidate_tokens or not existing_tokens:
+            continue
+        overlap = candidate_tokens & existing_tokens
+        score = len(overlap) / len(candidate_tokens | existing_tokens)
+        if score > best_score:
+            best_match, best_score = task, score
+    return best_match if best_score >= threshold else None
+
+
+def touch_entity_used(conn: sqlite3.Connection, entity_id: int) -> None:
+    conn.execute("UPDATE entities SET last_used_at = ? WHERE id = ?", (_now(), entity_id))
+
+
+def touch_instruction_used(conn: sqlite3.Connection, instruction_id: int) -> None:
+    conn.execute("UPDATE instructions SET last_used_at = ? WHERE id = ?", (_now(), instruction_id))
+
+
+def log_hey_kivi_request(
+    conn: sqlite3.Connection, *, kind: str, utterance: str, app: str | None, persona: str | None,
+    intent: str | None, retrieved_entity_ids: list[int], retrieved_instruction_ids: list[int],
+    retrieved_task_ids: list[int], retrieved_dictation_ids: list[int], result_text: str,
+    grounded: bool, refused: bool, reasoning: str, latency_ms: int,
+) -> int:
+    cur = conn.execute(
+        """
+        INSERT INTO hey_kivi_requests
+            (kind, utterance, app, persona, intent, retrieved_entity_ids_json,
+             retrieved_instruction_ids_json, retrieved_task_ids_json, retrieved_dictation_ids_json,
+             result_text, grounded, refused, reasoning, latency_ms)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            kind, utterance, app, persona, intent, dumps(retrieved_entity_ids),
+            dumps(retrieved_instruction_ids), dumps(retrieved_task_ids), dumps(retrieved_dictation_ids),
+            result_text, int(grounded), int(refused), reasoning, latency_ms,
+        ),
+    )
+    return cur.lastrowid
+
+
+def list_recent_hey_kivi_requests(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM hey_kivi_requests ORDER BY id DESC LIMIT ?", (limit,)
+    ).fetchall()
+    results = []
+    for r in rows:
+        d = row_to_dict(r)
+        for key in ("retrieved_entity_ids", "retrieved_instruction_ids", "retrieved_task_ids", "retrieved_dictation_ids"):
+            d[key] = loads(d.pop(f"{key}_json"), [])
+        results.append(d)
+    return results
+
+
 def list_recent_dictations(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
     rows = conn.execute(
         "SELECT * FROM dictations ORDER BY id DESC LIMIT ?", (limit,)

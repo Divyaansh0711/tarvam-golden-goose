@@ -2,9 +2,9 @@
 
 **Primary review method: completely local application, SQLite embedded database.**
 
-> Status: phase 3 of 8. Memory (view/add/edit/confirm/dismiss/forget) and the Dictation feed
-> (paste a transcript, see what Kivi extracted and why) are both reviewable now. Hey Kivi lands in
-> phases 4-5.
+> Status: phase 4 of 8. Memory, Dictation feed, and Hey Kivi's three action tools (resolve an
+> entity, apply a standing instruction, resume a task) are all reviewable now. Grounded free-form
+> Q&A lands in phase 5.
 
 ## 1. Runtimes and versions
 
@@ -59,7 +59,12 @@ http://127.0.0.1:8000
   service" example). Try pasting ordinary dictation with nothing memory-worthy in it, and a
   hypothetical/reported statement ("if I were you, I'd always CC...") — both should correctly
   produce no memory candidate.
-- Hey Kivi (`/hey-kivi`) is not built yet (phases 4-5).
+- Visit `/hey-kivi` — with `--seed`, try "Message Rahul about the launch timing" (resolves via the
+  seeded entity), then a name Kivi doesn't know (e.g. "Message Priya...") to see it correctly
+  decline rather than guess. Try "Draft a follow-up email to the client" to see the seeded CC
+  instruction applied. For task resume, first create one via the Dictation feed (paste the PRD
+  example), then ask Hey Kivi to "keep working on the PRD for voice search" in the same app.
+  Grounded Q&A ("what's Rahul's role?") is recognized but not yet answered (phase 5).
 
 ## 8. Evaluation
 

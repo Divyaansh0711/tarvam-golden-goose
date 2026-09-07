@@ -33,7 +33,33 @@ and explicit, not a general search index.
 
 ## Use cases implemented
 
-<!-- TODO: filled in as phases 3-5 land. -->
+Hey Kivi's action path (`app/services/hey_kivi.py`) has exactly one LLM call per request: a cheap
+intent/slot classifier that decides which of three narrow tools applies (`app/services/tools.py`)
+and extracts the relevant phrase. Everything after that — matching the phrase against known
+memory, deciding to resolve/apply/resume or decline — is plain, deterministic Python over
+already-retrieved rows, not a second model call. That keeps the "must never assume" behavior a
+matter of a Python function returning `None`, not a model choosing whether to admit it doesn't
+know.
+
+- **Resolve an entity** — "Message Rahul about the launch" resolves the named person, scoped to
+  the current app, and cites the dictation that established who they are. An unknown name (e.g.
+  "Message Priya" when no such entity exists) is correctly declined, not guessed.
+- **Apply a standing instruction** — "Draft a follow-up email to the client" surfaces the
+  instruction(s) scoped to that app ("CC manager on client emails").
+- **Resume a task** — "Keep working on the PRD for voice search" matches an open task by
+  word-overlap (not exact string match — "PRD voice search" and "PRD for voice search" are
+  recognized as the same work) and returns its last known state with citations to every dictation
+  that contributed to it.
+- **Correct non-intervention** — a request with nothing memory-relevant ("what's the weather")
+  passes through cleanly; a real recall question ("what's Rahul's role?") is honestly recognized
+  as a *different* capability (grounded Q&A) that isn't built yet, rather than being forced into
+  one of the three action tools.
+
+A real classification bug was caught and fixed during manual testing: "Message Rahul about X" was
+initially routed to `apply_instructions` instead of `resolve_entity`, because both intents are
+plausibly present. The fix was a contrastive example in the prompt distinguishing the *blocking*
+need (knowing who Rahul is) from an incidental one (composing a message) — see the intent prompt
+in `hey_kivi.py`.
 
 ## Evaluation
 
@@ -70,7 +96,7 @@ you're reviewing this and only have one provider's key, either works end-to-end;
 - [x] 1. Scaffolding — repo layout, FastAPI skeleton, schema, docs, config
 - [x] 2. Core memory store + manual CRUD + Memory screen
 - [x] 3. Ingestion + extraction pipeline + Dictation feed screen
-- [ ] 4. Hey Kivi actions (entity resolution, instructions, task resume)
+- [x] 4. Hey Kivi actions (entity resolution, instructions, task resume)
 - [ ] 5. Grounded Q&A + refusal handling
 - [ ] 6. ~500-record corpus + QA testset
 - [ ] 7. Evaluation harness + results
