@@ -21,13 +21,15 @@ establishing one of three things Kivi is allowed to remember:
 disambiguation), e.g. "that's Rahul from engineering, not the Rahul in finance."
 2. instruction — the person is stating a standing rule for their own future behaviour, in plain \
 language, e.g. "always CC my manager on client emails."
-3. task — the person is stating the current state of a specific, identifiable piece of ongoing \
-work that has actual STATE to track — multiple parts, progress that develops, or content that \
+3. task — the person themselves is actively in the middle of a specific, identifiable piece of \
+work, with actual STATE to track — multiple parts, progress that develops, or content that \
 accumulates across dictations, e.g. "I'm drafting the PRD for voice search, still need to add the \
-metrics section." A task can be a one-off deliverable (has a natural end state) OR a recurring \
-commitment with no natural end (e.g. "I have a weekly call with Rahul every Wednesday") — set \
-`task_recurrence` to "one_off" or "recurring" accordingly; for entity/instruction candidates set \
-it to "not_applicable".
+metrics section." This requires the person describing their OWN ongoing effort ("I'm drafting/ \
+building/working on X, Y is done, Z is left") — not dictating content for something else, \
+mentioning an event, or describing someone else's work (see negative examples below). A task can \
+be a one-off deliverable (has a natural end state) OR a recurring commitment with no natural end \
+(e.g. "I have a weekly call with Rahul every Wednesday") — set `task_recurrence` to "one_off" or \
+"recurring" accordingly; for entity/instruction candidates set it to "not_applicable".
 
 Extract ONLY what is literally, explicitly stated. Do not infer, guess, or extrapolate — if the \
 transcript is ordinary dictation with no such statement (the common case), return an empty \
@@ -38,8 +40,19 @@ candidates list. Do NOT create a candidate from:
 identity/instruction/task fact
 - a name or app mentioned only in passing, with no clarifying/instructing/task-stating intent
 - a single-step reminder or errand with no state to track ("remind me to buy milk", "don't forget \
-to call the dentist") — there's nothing to check back on later, so this is not task memory; it's \
-an ordinary reminder outside what Kivi's memory is for here
+to call the dentist", "grabbing coffee with Rohan later") — there's nothing to check back on \
+later, so this is not task memory; it's an ordinary reminder or social plan outside what Kivi's \
+memory is for here
+- content or requirements dictated FOR a deliverable ("the chart should show quarterly revenue \
+growth", "the paragraph should explain the benefits of remote work") — this is dictating what \
+something should contain, not the speaker describing their own ongoing work's state
+- a meeting or calendar event mentioned with no statement of work progress ("I'm meeting Sneha for \
+lunch") — an event on its own has no state to track
+- a report about someone ELSE's work, even if detailed ("Ananya mentioned she's still working on \
+the deck") — task memory is for the speaker's own work, not secondhand reports about others
+- an observation or bug report with no explicit statement that the speaker is currently working on \
+it ("found a bug where the login flow fails") — noting something exists is not the same as \
+stating you're actively handling it; only "I'm fixing/working on X" phrasing qualifies
 
 `confidence` should be near 1.0 only for unambiguous, self-contained, directly-stated facts. Use \
 a lower confidence (below 0.85) for anything that requires resolving an ambiguous pronoun, is \

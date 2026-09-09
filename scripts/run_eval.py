@@ -152,8 +152,13 @@ def score_corpus_record(record: dict, outcomes: list[dict], group_state: dict) -
         return result
 
     o = matching[0]
+    # "created_known_limitation" means "a brand-new item was created because
+    # dedup didn't catch a paraphrase" — the actual decision string for a
+    # fresh, auto-confirmed item is "created" for tasks but "auto_confirmed"
+    # for entities/instructions (see extraction.py); accept either so this
+    # doesn't silently mismatch depending on which type used it.
     decision_ok = o["decision"] == expected_decision or (
-        expected_decision == "created_known_limitation" and o["decision"] == "created"
+        expected_decision == "created_known_limitation" and o["decision"] in ("created", "auto_confirmed")
     )
     if not decision_ok:
         result.update(bucket="wrong_decision", verdict="fail",
@@ -261,12 +266,22 @@ def run_qa_eval(qa_dir: Path) -> list[dict]:
     for case in qa_cases:
         db_path = qa_dir / f"{case['id']}.db"
         conn = fresh_db(db_path)
-        setup_outcomes = setup_qa_case(conn, case)
-
-        start = time.monotonic()
-        answer = _with_retry(lambda: qa.answer_question(conn, question=case["question"], app=case["app"], persona=None))
-        latency_ms = int((time.monotonic() - start) * 1000)
-        conn.commit()
+        try:
+            setup_outcomes = setup_qa_case(conn, case)
+            start = time.monotonic()
+            answer = _with_retry(lambda: qa.answer_question(conn, question=case["question"], app=case["app"], persona=None))
+            latency_ms = int((time.monotonic() - start) * 1000)
+            conn.commit()
+        except Exception as exc:
+            conn.close()
+            print(f"  {case['id']} failed, recording as harness_error and continuing: {exc}")
+            results.append({
+                "id": case["id"], "question": case["question"], "app": case["app"], "notes": case.get("notes", ""),
+                "expected_grounded": case["expected_grounded"], "expected_answer_contains": case.get("expected_answer_contains", []),
+                "actual": None, "setup_outcomes": [], "latency_ms": None,
+                "grounded_ok": False, "content_ok": False, "verdict": "error", "error": str(exc), "model_calls": [],
+            })
+            continue
 
         model_calls = conn.execute(
             "SELECT purpose, model, input_tokens, output_tokens, latency_ms, estimated_cost_usd FROM model_calls"
@@ -313,9 +328,13 @@ def summarize(corpus_cases: list[dict], qa_cases: list[dict], corpus_db_path: Pa
 
         n = len(corpus_cases)
         n_pass = sum(1 for c in corpus_cases if c["verdict"] == "pass")
+        n_errors = sum(1 for c in corpus_cases if c["verdict"] == "error")
+        n_scored = n - n_errors
         summary["corpus"] = {
             "total_records": n,
-            "pass_rate": round(n_pass / n, 4) if n else None,
+            "harness_errors": n_errors,
+            "pass_rate_including_errors": round(n_pass / n, 4) if n else None,
+            "pass_rate_excluding_errors": round(n_pass / n_scored, 4) if n_scored else None,
             "by_bucket": by_bucket,
             "by_category": by_category,
             "latency_ms": {
@@ -330,19 +349,25 @@ def summarize(corpus_cases: list[dict], qa_cases: list[dict], corpus_db_path: Pa
     if qa_cases:
         n = len(qa_cases)
         n_pass = sum(1 for c in qa_cases if c["verdict"] == "pass")
-        should_answer = [c for c in qa_cases if c["expected_grounded"]]
-        should_refuse = [c for c in qa_cases if not c["expected_grounded"]]
-        latencies = [c["latency_ms"] for c in qa_cases]
+        n_errors = sum(1 for c in qa_cases if c["verdict"] == "error")
+        n_scored = n - n_errors
+        scored_cases = [c for c in qa_cases if c["verdict"] != "error"]
+        should_answer = [c for c in scored_cases if c["expected_grounded"]]
+        should_refuse = [c for c in scored_cases if not c["expected_grounded"]]
+        latencies = [c["latency_ms"] for c in qa_cases if c["latency_ms"] is not None]
         total_cost = sum(mc["estimated_cost_usd"] for c in qa_cases for mc in c["model_calls"])
         total_tokens = sum(mc["input_tokens"] + mc["output_tokens"] for c in qa_cases for mc in c["model_calls"])
         summary["qa"] = {
             "total_cases": n,
-            "pass_rate": round(n_pass / n, 4) if n else None,
+            "errors": n_errors,
+            "pass_rate_including_errors": round(n_pass / n, 4) if n else None,
+            "pass_rate_excluding_errors": round(n_pass / n_scored, 4) if n_scored else None,
             "should_answer_correct": sum(1 for c in should_answer if c["verdict"] == "pass"),
             "should_answer_total": len(should_answer),
             "should_refuse_correct": sum(1 for c in should_refuse if c["verdict"] == "pass"),
             "should_refuse_total": len(should_refuse),
             "failures": [c["id"] for c in qa_cases if c["verdict"] == "fail"],
+            "errored": [c["id"] for c in qa_cases if c["verdict"] == "error"],
             "latency_ms": {"mean": round(statistics.mean(latencies), 1), "median": statistics.median(latencies)} if latencies else {},
             "total_cost_usd": round(total_cost, 6),
             "total_tokens": total_tokens,
@@ -357,7 +382,9 @@ def write_markdown_summary(summary: dict, path: Path) -> None:
     if "corpus" in summary:
         c = summary["corpus"]
         lines.append("## Corpus replay\n")
-        lines.append(f"- **{c['total_records']} records**, overall pass rate **{c['pass_rate']:.1%}**\n")
+        lines.append(f"- **{c['total_records']} records**, **{c['harness_errors']} infra errors** (rate-limited, not scored)")
+        lines.append(f"- Pass rate **excluding** infra errors (the real quality signal): **{c['pass_rate_excluding_errors']:.1%}**")
+        lines.append(f"- Pass rate including infra errors as failures (pessimistic floor): **{c['pass_rate_including_errors']:.1%}**\n")
         lines.append("### Outcome breakdown\n")
         lines.append("| bucket | count |\n|---|---|")
         for bucket, count in sorted(c["by_bucket"].items(), key=lambda x: -x[1]):
@@ -385,11 +412,14 @@ def write_markdown_summary(summary: dict, path: Path) -> None:
     if "qa" in summary:
         q = summary["qa"]
         lines.append("## Grounded Q&A\n")
-        lines.append(f"- **{q['total_cases']} cases**, pass rate **{q['pass_rate']:.1%}**")
+        lines.append(f"- **{q['total_cases']} cases**, {q['errors']} infra errors (rate-limited, not scored)")
+        lines.append(f"- Pass rate excluding infra errors: **{q['pass_rate_excluding_errors']:.1%}**" if q['pass_rate_excluding_errors'] is not None else "- Pass rate excluding infra errors: n/a (all cases errored)")
         lines.append(f"- Should-answer cases correct: {q['should_answer_correct']}/{q['should_answer_total']}")
         lines.append(f"- Should-refuse cases correct: {q['should_refuse_correct']}/{q['should_refuse_total']}")
         if q["failures"]:
             lines.append(f"- Failing case ids: {', '.join(q['failures'])}")
+        if q["errored"]:
+            lines.append(f"- **{q['errors']} case(s) errored (infra failure, not scored)**: {', '.join(q['errored'])} — re-run to get a real verdict for these")
         lines.append(f"- Latency (ms): mean {q['latency_ms'].get('mean')}, median {q['latency_ms'].get('median')}")
         lines.append(f"- Total cost: ${q['total_cost_usd']:.6f} across {q['total_tokens']} tokens\n")
 
@@ -412,37 +442,62 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None, help="only replay the first N corpus records")
     parser.add_argument("--qa-only", action="store_true", help="skip corpus replay, only run the QA test set")
     parser.add_argument("--corpus-only", action="store_true", help="skip the QA test set, only replay the corpus")
+    parser.add_argument("--summary-only", action="store_true", help="make no API calls — just regenerate summary.json/.md from existing corpus_cases.jsonl/qa_cases.jsonl")
     args = parser.parse_args()
 
-    if OUT_DIR.exists():
-        shutil.rmtree(OUT_DIR)
-    OUT_DIR.mkdir(parents=True)
+    if args.summary_only:
+        corpus_cases_path, qa_cases_path = OUT_DIR / "corpus_cases.jsonl", OUT_DIR / "qa_cases.jsonl"
+        corpus_cases = [json.loads(l) for l in open(corpus_cases_path)] if corpus_cases_path.exists() else []
+        qa_cases = [json.loads(l) for l in open(qa_cases_path)] if qa_cases_path.exists() else []
+        summary = summarize(corpus_cases, qa_cases, (OUT_DIR / "corpus.db") if corpus_cases else None)
+        (OUT_DIR / "summary.json").write_text(json.dumps(summary, indent=2))
+        write_markdown_summary(summary, OUT_DIR / "summary.md")
+        print(f"Regenerated summary from existing data in {OUT_DIR} (no API calls made).")
+        return
+
+    corpus_cases_path = OUT_DIR / "corpus_cases.jsonl"
+    qa_cases_path = OUT_DIR / "qa_cases.jsonl"
+    corpus_db_path = OUT_DIR / "corpus.db"
+
+    if not args.qa_only and not args.corpus_only:
+        # Full run: start clean.
+        if OUT_DIR.exists():
+            shutil.rmtree(OUT_DIR)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     corpus_cases = []
-    corpus_db_path = None
     if not args.qa_only:
         with open(CORPUS_PATH) as f:
             records = [json.loads(line) for line in f]
         print(f"Replaying {len(records)} corpus records...")
-        corpus_db_path = OUT_DIR / "corpus.db"
         conn = fresh_db(corpus_db_path)
         corpus_cases = run_corpus_eval(conn, records, args.limit)
         conn.close()
-        with open(OUT_DIR / "corpus_cases.jsonl", "w") as f:
+        with open(corpus_cases_path, "w") as f:
             for c in corpus_cases:
                 f.write(json.dumps(c) + "\n")
         print(f"Corpus replay done: {sum(1 for c in corpus_cases if c['verdict'] == 'pass')}/{len(corpus_cases)} passed")
+    elif corpus_cases_path.exists():
+        # --qa-only: keep and fold in results from a prior corpus run rather
+        # than losing them from the combined summary.
+        with open(corpus_cases_path) as f:
+            corpus_cases = [json.loads(line) for line in f]
+        print(f"Reusing {len(corpus_cases)} corpus results from a previous run ({corpus_cases_path}).")
 
     qa_cases = []
     if not args.corpus_only:
         print(f"Running {sum(1 for _ in open(QA_PATH))} QA cases...")
         qa_cases = run_qa_eval(OUT_DIR / "qa_dbs")
-        with open(OUT_DIR / "qa_cases.jsonl", "w") as f:
+        with open(qa_cases_path, "w") as f:
             for c in qa_cases:
                 f.write(json.dumps(c) + "\n")
         print(f"QA eval done: {sum(1 for c in qa_cases if c['verdict'] == 'pass')}/{len(qa_cases)} passed")
+    elif qa_cases_path.exists():
+        with open(qa_cases_path) as f:
+            qa_cases = [json.loads(line) for line in f]
+        print(f"Reusing {len(qa_cases)} QA results from a previous run ({qa_cases_path}).")
 
-    summary = summarize(corpus_cases, qa_cases, corpus_db_path)
+    summary = summarize(corpus_cases, qa_cases, corpus_db_path if corpus_cases else None)
     (OUT_DIR / "summary.json").write_text(json.dumps(summary, indent=2))
     write_markdown_summary(summary, OUT_DIR / "summary.md")
     print(f"\nResults written to {OUT_DIR}")

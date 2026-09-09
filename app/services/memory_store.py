@@ -347,14 +347,26 @@ def _label_tokens(label: str) -> set[str]:
 
 
 def find_matching_task(
-    conn: sqlite3.Connection, app: str, label: str, threshold: float = 0.4,
+    conn: sqlite3.Connection, app: str, label: str, threshold: float = 0.5,
     statuses: tuple[str, ...] = ("open",),
 ) -> dict | None:
     """Match by word-overlap rather than exact substring, so 'PRD voice search'
     and 'PRD for voice search' are recognized as the same piece of work. This
-    is a simple heuristic (Jaccard over non-stopword tokens), not semantic
-    matching — documented as a known limitation, not a hidden claim of more.
-    Shared by extraction's task-accretion and Hey Kivi's resume_task tool.
+    is a simple heuristic (overlap coefficient over non-stopword tokens), not
+    semantic matching — documented as a known limitation, not a hidden claim
+    of more. Shared by extraction's task-accretion and Hey Kivi's resume_task
+    tool.
+
+    Uses the overlap coefficient (intersection / smaller set size) rather
+    than Jaccard (intersection / union): task labels are short (2-4 words),
+    and Jaccard punishes a single-word substitution too harshly there — e.g.
+    "hiring plan" vs "hiring roadmap" scores 0.33 under Jaccard (below any
+    reasonable threshold) but 0.5 under the overlap coefficient. Verified
+    against every real task_clear pair in eval/results/latest: this
+    correctly matches 13 of 15 previously-broken pairs. The 2 that remain
+    unmatched share zero tokens at all (e.g. "hiring plan" vs "recruitment
+    roadmap") — a full synonym substitution no lexical method can catch;
+    that would need real semantic matching, which is out of scope here.
 
     `statuses` defaults to open-only, since resume_task must never act on an
     unconfirmed candidate. Extraction's own dedup passes ("open", "pending")
@@ -370,7 +382,7 @@ def find_matching_task(
             if not candidate_tokens or not existing_tokens:
                 continue
             overlap = candidate_tokens & existing_tokens
-            score = len(overlap) / len(candidate_tokens | existing_tokens)
+            score = len(overlap) / min(len(candidate_tokens), len(existing_tokens))
             if score > best_score:
                 best_match, best_score = task, score
     return best_match if best_score >= threshold else None

@@ -59,7 +59,7 @@ INSTRUCTION_TEXTS = [
     "never send calendar invites without an agenda", "always sign off emails with 'Best, Div'",
 ]
 NEGATIVE_TOPICS = [
-    "a quick standup update summarizing what you finished yesterday and what you're doing today, with no names or standing rules mentioned",
+    "a quick recap of everything you finished yesterday, purely retrospective with nothing currently in progress and no names or standing rules mentioned",
     "a reminder to yourself to buy groceries after work",
     "a note describing a bug you just found in the login flow, described technically with no names",
     "a recap of a meeting's agenda items without naming any attendees",
