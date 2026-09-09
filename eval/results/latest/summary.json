@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-09-09 19:19:58",
+  "corpus": {
+    "total_records": 512,
+    "harness_errors": 493,
+    "pass_rate_including_errors": 0.0371,
+    "pass_rate_excluding_errors": 1.0,
+    "by_bucket": {
+      "correct_non_intervention": 11,
+      "correct_intervention": 8,
+      "harness_error": 493
+    },
+    "by_category": {
+      "negative_ordinary": {
+        "correct_non_intervention": 11,
+        "harness_error": 249
+      },
+      "entity_clear": {
+        "correct_intervention": 4,
+        "harness_error": 66
+      },
+      "instruction_clear": {
+        "correct_intervention": 2,
+        "harness_error": 48
+      },
+      "boundary_scope": {
+        "harness_error": 19,
+        "correct_intervention": 1
+      },
+      "adversarial": {
+        "harness_error": 25
+      },
+      "task_clear": {
+        "harness_error": 49,
+        "correct_intervention": 1
+      },
+      "ambiguous": {
+        "harness_error": 25
+      },
+      "recurring_task": {
+        "harness_error": 12
+      }
+    },
+    "latency_ms": {
+      "mean": 2747.3,
+      "median": 2124.0,
+      "p95": 2457,
+      "max": 75686
+    },
+    "db_row_counts": {
+      "dictations": 22,
+      "entities": 5,
+      "instructions": 2,
+      "tasks": 1,
+      "memory_events": 27,
+      "model_calls": 19
+    },
+    "model_usage_by_purpose": [
+      {
+        "purpose": "extraction",
+        "calls": 19,
+        "in_tok": 23304,
+        "out_tok": 3781,
+        "cost": 0.0,
+        "avg_latency_ms": 9040.894736842105
+      }
+    ]
+  },
+  "qa": {
+    "total_cases": 19,
+    "errors": 17,
+    "pass_rate_including_errors": 0.1053,
+    "pass_rate_excluding_errors": 1.0,
+    "should_answer_correct": 0,
+    "should_answer_total": 0,
+    "should_refuse_correct": 2,
+    "should_refuse_total": 2,
+    "failures": [],
+    "errored": [
+      "q001",
+      "q002",
+      "q003",
+      "q004",
+      "q005",
+      "q006",
+      "q007",
+      "q008",
+      "q010",
+      "q011",
+      "q012",
+      "q013",
+      "q014",
+      "q015",
+      "q016",
+      "q017",
+      "q019"
+    ],
+    "latency_ms": {
+      "mean": 639.5,
+      "median": 639.5
+    },
+    "total_cost_usd": 0.0,
+    "total_tokens": 893
+  }
+}
