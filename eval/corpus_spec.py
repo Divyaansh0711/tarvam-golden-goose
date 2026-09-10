@@ -417,7 +417,18 @@ def _recurring_task(rng, n_recurring, n_one_off_control):
     return specs
 
 
-def build_specs(seed: int = 42) -> list[dict]:
+def build_specs(seed: int = 42, include_recurring_task: bool = False) -> list[dict]:
+    """Reproduces the committed corpus. Defaults to exactly the original
+    500 records (c0001-c0500) — recurring_task is opt-in via
+    `include_recurring_task`, since in the actual committed corpus it was
+    generated later and appended with continuing ids (see
+    scripts/generate_corpus.py's --append-category), not interleaved into
+    the main 500's shuffle. Passing include_recurring_task=True draws from
+    the SAME rng position that produced the already-committed c0501-c0512
+    (recurring_task's draws happen after all seven other categories'
+    either way, so its content is identical regardless of this flag) —
+    only the ids/ordering differ, and --append-category already reassigns
+    those explicitly rather than relying on this function's own ordering."""
     rng = random.Random(seed)
     specs = []
     specs += _negative_ordinary(rng, 260)
@@ -427,7 +438,8 @@ def build_specs(seed: int = 42) -> list[dict]:
     specs += _ambiguous(rng, 25)
     specs += _adversarial(rng, 25)
     specs += _boundary_scope(rng, 8, 4)
-    specs += _recurring_task(rng, 8, 4)
+    if include_recurring_task:
+        specs += _recurring_task(rng, 8, 4)
 
     # Shuffle at the group level, not the flat-record level: a threaded
     # record (seq=1, e.g. a task update) must never end up scheduled before

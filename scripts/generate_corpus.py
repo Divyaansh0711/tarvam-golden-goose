@@ -100,7 +100,11 @@ def main() -> None:
             raise SystemExit(f"--append-category requires an existing corpus at {OUT_PATH}")
         with open(OUT_PATH) as f:
             existing_records = [json.loads(line) for line in f]
-        specs = [s for s in build_specs(seed=args.seed) if s["category"] == args.append_category]
+        # NOTE: recurring_task is currently the only opt-in extension category
+        # (see corpus_spec.py's build_specs docstring) — generalize this if
+        # another one is added later.
+        full_specs = build_specs(seed=args.seed, include_recurring_task=(args.append_category == "recurring_task"))
+        specs = [s for s in full_specs if s["category"] == args.append_category]
         # Reassign ids/timestamps to continue the existing file's numbering,
         # ignoring wherever this category landed in the full shuffle.
         for offset, spec in enumerate(specs):
