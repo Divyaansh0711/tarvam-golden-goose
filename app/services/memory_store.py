@@ -339,7 +339,18 @@ def find_matching_entity(conn: sqlite3.Connection, app: str, surface_forms: list
     return None
 
 
-_STOPWORDS = {"the", "a", "an", "for", "of", "on", "in", "to", "and", "my"}
+_STOPWORDS = {
+    "the", "a", "an", "for", "of", "on", "in", "to", "and", "my", "with",
+    # Recurring-commitment labels are dominated by boilerplate ("standing
+    # weekly commitment/call/meeting/sync with X") where the person's name
+    # is the only actually-distinguishing word — without filtering these,
+    # two different people's commitments score up to 0.8 overlap and
+    # incorrectly collapse into one task (found via the full eval: 7
+    # different people's recurring commitments all matched the first one
+    # created). These words don't appear in any one-off task label in the
+    # corpus, so filtering them is safe for that matching too.
+    "standing", "weekly", "commitment", "call", "meeting", "sync", "recurring",
+}
 
 
 def _label_tokens(label: str) -> set[str]:

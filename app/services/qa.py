@@ -26,7 +26,14 @@ item your answer depends on.
 If none of the provided items answer the question, set answered to false and say so plainly — do \
 not use outside knowledge, do not guess, and do not answer a related-but-different question \
 instead. An honest "I don't have anything on that" is always correct when the memory doesn't \
-contain the answer; a confident-sounding guess is always wrong, even if it happens to be right."""
+contain the answer; a confident-sounding guess is always wrong, even if it happens to be right.
+
+`answered` means "the person's actual question is resolved by what I found" — not "I found \
+something to say." If you want to be transparent about what you checked and why it doesn't apply \
+(e.g. "the only rule on file is about X, not Y"), that's good practice for the explanation text, \
+but it still means the question itself is unanswered: set answered to false, and leave \
+cited_entity_ids/cited_instruction_ids/cited_task_ids empty — those fields are for the evidence \
+that DIRECTLY supports a real answer, not for items you're ruling out or mentioning for context."""
 
 QA_TOOL_SCHEMA = {
     "type": "object",

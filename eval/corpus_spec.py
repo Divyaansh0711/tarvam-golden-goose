@@ -407,9 +407,17 @@ def _recurring_task(rng, n_recurring, n_one_off_control):
         specs.append(_mk(
             rng, "recurring_task", app,
             {
-                "extraction_type": "task", "expected_decision": "created",
-                "expected_task_recurrence": "one_off", "task_label_contains": name,
-                "notes": "a single specific meeting, not recurring — must not be over-flagged as needing confirmation",
+                # A bare meeting mention with no work-progress framing is
+                # excluded by extraction.py's later task-tightening (a
+                # calendar event on its own has no state to track — see the
+                # "remind me to buy milk" / "meeting Sneha for lunch" fixes).
+                # This spec predates that tightening and originally expected
+                # "created" (testing only "not flagged as recurring"); fixed
+                # after the full eval run showed the corpus's own expectation
+                # was stale, not the system: it consistently (reproduced
+                # twice) and correctly produces nothing now.
+                "extraction_type": "none", "expected_decision": "none",
+                "notes": "a single specific meeting with no progress-state framing — correctly produces nothing under the current task definition; also implicitly confirms it's not over-flagged as recurring",
             },
             f"Dictate that you have a one-time call with {name} this coming {day} to discuss a specific "
             f"topic — phrase it clearly as a single, specific meeting, not a routine.",
