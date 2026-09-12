@@ -90,7 +90,8 @@
       <input name="surface_forms" placeholder="surface forms, comma-separated (e.g. Rahul, Rahul S)" required>
       <input name="resolved_as" placeholder="resolved as (e.g. Rahul Sharma — engineering lead)" required>
       <input name="role_context" placeholder="role / context (optional)">
-      <input name="app" placeholder="app to scope to (blank = global)">
+      <input name="app" placeholder="app to scope to (blank = global)"
+             title="Which app this entity is recognized in. Leave blank to make it global (recognized everywhere) — otherwise Hey Kivi will only resolve this entity when acting in that specific app.">
       <button class="primary" type="submit">Add</button>
     </form>
   </details>
@@ -126,8 +127,10 @@
     <summary>+ Add an instruction manually</summary>
     <form method="post" action="/memory/instructions">
       <input name="rule_text" placeholder="e.g. Always CC my manager on client emails" required>
-      <input name="app" placeholder="app to scope to (optional)">
-      <input name="persona" placeholder="persona (optional)">
+      <input name="app" placeholder="app to scope to (optional)"
+             title="Which app this rule applies to. Leave blank to apply it everywhere — an app-scoped instruction never surfaces when Hey Kivi is acting in a different app.">
+      <input name="persona" placeholder="persona (optional)"
+             title="A finer-grained scope under the app, like 'work' vs 'personal' — mirrors Kivi's existing Styles. Leave blank to ignore persona entirely; if set, this instruction only applies when that exact persona is active on the request.">
       <button class="primary" type="submit">Add</button>
     </form>
   </details>
