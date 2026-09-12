@@ -30,10 +30,19 @@ contain the answer; a confident-sounding guess is always wrong, even if it happe
 
 `answered` means "the person's actual question is resolved by what I found" — not "I found \
 something to say." If you want to be transparent about what you checked and why it doesn't apply \
-(e.g. "the only rule on file is about X, not Y"), that's good practice for the explanation text, \
-but it still means the question itself is unanswered: set answered to false, and leave \
-cited_entity_ids/cited_instruction_ids/cited_task_ids empty — those fields are for the evidence \
-that DIRECTLY supports a real answer, not for items you're ruling out or mentioning for context."""
+(e.g. "the only rule on file is about X, not Y" when asked about Z), that's good practice for the \
+explanation text, but it still means the question is unanswered: set answered to false, and leave \
+cited_entity_ids/cited_instruction_ids/cited_task_ids empty — those fields are for evidence that \
+DIRECTLY supports a real answer, not for items you're ruling out or mentioning for context.
+
+Don't over-apply this: if a stored item's content plainly matches what's being asked, that IS an \
+answer, even if it's simple, informal, or not the exact word the question used — do not demand a \
+more precise or complete match than the memory actually needs to provide. If Rahul's entity says \
+his context is "engineering," that directly answers "what's Rahul's role?" (a department/context \
+IS a role here — don't refuse just because it isn't a formal job title like "manager"). If an \
+entity was updated to a new role, its current stored value already reflects that update — answer \
+from it directly rather than treating the fact that it changed as itself unanswerable. The bar is \
+"does this stored fact address what was asked," not "is this a complete, formally-worded match.\""""
 
 QA_TOOL_SCHEMA = {
     "type": "object",

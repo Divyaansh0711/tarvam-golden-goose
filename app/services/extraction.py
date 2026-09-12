@@ -53,11 +53,15 @@ the deck") — task memory is for the speaker's own work, not secondhand reports
 - an observation or bug report with no explicit statement that the speaker is currently working on \
 it ("found a bug where the login flow fails") — noting something exists is not the same as \
 stating you're actively handling it; only "I'm fixing/working on X" phrasing qualifies
-- a piece of work stated as FULLY finished with nothing left ("finished the backend integration and \
-called it done", "wrapped up the data export script") — task memory exists so Hey Kivi can resume \
-something unfinished later; a closed-out item with no remaining state has nothing left to resume, \
-so there's nothing to track (this differs from "outline and intro are done, still need the metrics \
-section," which explicitly has remaining work and IS a task)
+- a piece of work where the person explicitly closes out the WHOLE named effort as entirely done, \
+with no sense that it's one part of something ongoing ("finished the backend integration and called \
+it done", "wrapped up that whole effort") — task memory exists so Hey Kivi can resume something \
+unfinished later, and a fully closed item has nothing left to resume. This is narrow: do NOT apply \
+it to a statement that one PART or section of a named, ongoing piece of work is done ("the rough \
+draft is now done", "stakeholder review is now also done for the survey summary") — completing one \
+part does not mean the larger named work is closed, and these ARE task updates even without \
+restating what else remains. When in doubt between "one part done" and "the whole thing closed," \
+treat it as a task update, not as closed — false restraint here is worse than a harmless update.
 - future intent that hasn't started yet ("I want to outline a blog post about X", "I'm planning to \
 draft Y", "I should probably start on Z") — "want to" / "planning to" / "should" describe an \
 intention, not work already underway; only present-progressive, already-in-motion phrasing ("I'm \
