@@ -249,10 +249,6 @@ This README, the code, and the evaluation harness were built with Claude Code, w
 product position in `docs/POSITIONING.md` / `docs/VISION.md`, which were written independently and
 without AI assistance, per the brief's requirement for Part One.
 
-> Note for the author, not the reviewer (this only works on the machine the session ran on):
-> most of this build happened in one Claude Code session, resumable with
-> `claude --resume c0d60b77-639d-4190-a4a6-984b789ef0c4`.
-
 ## A note on the LLM provider
 
 The documented, primary provider is **Anthropic** (`ANTHROPIC_API_KEY`, `claude-haiku-4-5` for

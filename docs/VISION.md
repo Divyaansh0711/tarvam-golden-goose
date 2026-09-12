@@ -1,9 +1,9 @@
 # Product Vision
 
-What we're building. Kivi sits in an unusual position: it is the interface between a person and
+Kivi sits in an unusual position: it is the interface between a person and
 every application on their machine. That gives it more visibility into someone's life than almost
 any other product category, and it has so far used that visibility narrowly — to get pronunciation,
-spelling, and tone right. As Hey Kivi becomes the primary surface and dictation becomes one feature
+spelling, and tone right; this can be observed from the already existing phonetic memory, dictionary and styles features. As Hey Kivi becomes the primary surface and dictation becomes one feature
 inside it, the temptation is to widen that visibility into a general memory of the user — what they
 care about, how they feel, who matters to them. We're resisting that. Semantic memory for Kivi
 should do for context exactly what phonetic memory already does for speech: reduce the need to
@@ -15,7 +15,8 @@ instead of starting over, applying the sign-off you always use without being tol
 narrower target than "personalization," and a much more testable one: did the action match what the
 user meant, without a second correction. If semantic memory doesn't reduce corrections and
 re-specifications during real work, it isn't earning its place regardless of how sophisticated it is
-underneath.
+underneath. Our goal lies is ensuring convenience for the users; ultimately enabling them the work faster
+and error free.
 
 What deserves to be remembered. Following the shape phonetic memory already set: entities and their
 roles, established the same way a corrected name is established — the user states or confirms them,
@@ -36,7 +37,7 @@ general-purpose life log; the failure mode to design against explicitly is Recal
 capture, which looked technically impressive and became the reason people stopped trusting the
 product that shipped it.
 
-Why someone keeps trusting it. Because the model is already proven: users correct Kivi once — a
+Why someone keeps trusting it? Because the model is already proven: users correct Kivi once — a
 name, a phrase, a tone — and the correction visibly sticks, in the very next sentence, without being
 told what else was inferred from it. Semantic memory should extend that same loop to entities and
 instructions: visible, per-context, and as easy to undo as fixing a mispronunciation. The moment Hey
