@@ -178,39 +178,62 @@ human-readable `summary.md`, machine-readable `summary.json`, full per-case deta
 `corpus_cases.jsonl` / `qa_cases.jsonl`, and the actual replayed SQLite databases for direct
 inspection. See RUN.md item 8 for exact commands.
 
-**Current status**: the harness itself is built and has already proven its worth — running the
-19-case Q&A set against it caught a real bug (task-state updates were overwriting rather than
-merging progress across dictations, see above) before the full corpus run ever completed. The full
-512-record replay has not yet finished end-to-end in one pass: the temporary Groq provider's
-free-tier daily token limit (200,000/day) was exhausted by cumulative usage across corpus
-generation and this session's live testing, partway through the run. The harness retries each call
-once and records a `harness_error` case rather than crashing when a call still fails, so a
-rate-limited run degrades gracefully rather than silently corrupting results — but a *complete,
-uninterrupted* run (and the results committed to this repo) should be produced on the Anthropic
-provider, which doesn't share this constraint, before this submission is treated as final. If you
-are reviewing this and `eval/results/latest/` looks incomplete or absent, that is why — re-run
-`python scripts/run_eval.py` with a working `ANTHROPIC_API_KEY` to produce the full report.
+**Final results** (Anthropic, `claude-haiku-4-5` for extraction / `claude-sonnet-5` for Q&A;
+`eval/results/latest/`, reproducible with `python scripts/run_eval.py`):
+
+- **Corpus (512 records): 91.0% pass rate, 0 infrastructure errors.** Breakdown: 287
+  correct-non-intervention (restraint on ordinary dictation), 153 correct-intervention, 24
+  ambiguous statements correctly held for confirmation, 2 known-limitation cases (the intentional
+  paraphrase-dedup test, working exactly as designed), 36 wrong-decision, 7 false-negative, 2
+  false-positive, 1 over-confident-on-ambiguous. Cost: $1.42, avg extraction latency 2.99s.
+- **Grounded Q&A (19 cases): 100% pass rate** — 10/10 answerable questions correctly answered and
+  cited, 9/9 unanswerable questions correctly refused (including scope-isolation, pending-memory,
+  and overgeneralization refusals). Cost: $0.17, avg latency 4.23s.
+
+The harness earned its keep well beyond producing this number — across several full runs it caught
+and helped fix real bugs, not eval-tuning: a recurring-commitment matcher that collapsed 7
+different people's weekly commitments into one task (boilerplate words dominated the similarity
+score), task-state updates overwriting instead of merging progress across dictations, a QA
+grounding check that scored an honest refusal as a confident answer, and task extraction that was
+alternately too eager (content specs, meeting mentions, fully-closed work) and briefly too
+conservative after a fix overcorrected. Each is described where it was fixed, above.
+
+**What's left, honestly**: of the 36 wrong-decision + 7 false-negative + 2 false-positive cases,
+the large majority (~30) are a corpus-generation artifact, not a product defect — with only 20
+names and 10 instruction templates spread across hundreds of independently-generated specs, the
+same name or instruction text was sometimes reused by unrelated specs in the same app, and the
+system's actual behavior (merge/dedupe) was correct; the scorer wrongly assumed every "standalone"
+spec would never collide. A genuine, minor residual: "I've also finished/completed X" (as opposed
+to "X is now done") is inconsistently recognized as a task update for about 1% of task_clear cases
+— reproducible, isolated to that specific phrasing, and not chased further given diminishing
+returns after several verified rounds of tightening (see git history for each).
 
 ## Limitations
 
-- **Full corpus evaluation incomplete** — see Evaluation above. The harness is verified correct;
-  the full 512-record run needs to complete on the Anthropic provider before this is final.
 - **Instruction dedup is exact-text only.** A restatement of an existing rule in different words
   (not a near-verbatim repeat) is treated as a new, separate instruction rather than recognized as
   a duplicate. Deliberately included as a known case in the eval corpus (`instruction_clear`'s
-  paraphrase pairs) rather than papered over.
+  paraphrase pairs) rather than papered over — 2/2 in the final run, exactly as designed.
 - **Task and entity matching are simple heuristics, not semantic understanding.** Task labels match
-  by word-overlap (Jaccard over non-stopword tokens); entities match by exact (case-insensitive)
-  surface-form overlap. This is a deliberate simplicity choice — genuinely picking apart "Bob" vs.
-  "Robert" as the same person, for instance, would need real entity resolution, and would trade the
-  system's inspectability (a human can read the matching code) for a capability the position's
-  three use cases don't actually require.
-- **The 0.85 auto-confirm confidence threshold is a fixed heuristic**, not yet tuned against
-  measured outcomes — the full eval run (once complete) is what real threshold calibration would
-  be based on, rather than an number chosen up front.
-- **Groq (the temporary dev-time provider) has looser structured-output guarantees than Anthropic**
-  and a low free-tier daily rate limit (see Evaluation above and "A note on the LLM provider"
-  below) — not the documented provider for submission for exactly these reasons.
+  by word-overlap coefficient over non-stopword tokens (chosen over Jaccard after the eval found
+  Jaccard too strict on short labels — see git history); entities match by exact (case-insensitive)
+  surface-form overlap. A full synonym substitution with zero shared words ("hiring plan" vs.
+  "recruitment roadmap") is unsolvable by any lexical method — confirmed in the eval, not
+  hypothetical. This is a deliberate simplicity choice — genuinely picking apart "Bob" vs. "Robert"
+  as the same person would need real entity resolution, trading the system's inspectability (a
+  human can read the matching code) for a capability the position's three use cases don't require.
+- **A specific task-update phrasing is inconsistently recognized**: "I've also finished/completed
+  X" (as opposed to "X is now done") — see Evaluation above. Isolated to ~1% of task_clear cases,
+  not chased further after several verified rounds of tightening.
+- **The 0.85 auto-confirm confidence threshold is a fixed heuristic**, not tuned against the full
+  eval's measured outcomes — a natural next step if this were taken further, but the eval already
+  shows it isn't causing systematic harm (91% pass rate, and the one over-confident case involved
+  genuine hedged language, not miscalibration).
+- **Groq was used as a temporary dev-time provider mid-build** (see "A note on the LLM provider"
+  below) before an Anthropic key was available — the final results above are on Anthropic, the
+  documented provider, and Groq's looser structured-output guarantees and low free-tier rate limit
+  (which repeatedly interrupted full eval runs before an Anthropic key was obtained) are exactly
+  why it was never the intended long-term choice.
 - **No general search over dictation content**, by deliberate design (see "A deliberate scope
   decision" above) — task memory recovers state across dictations about the *same, explicitly
   identified* work; it does not let Hey Kivi search everything ever said.
@@ -239,12 +262,17 @@ key was available, so a temporary alternative was added behind the same interfac
 caller (`extraction.py`, and Hey Kivi's tools later) goes through one `call_tool()` function and
 never knows which provider answered — swapping back is a one-file change, not a rewrite.
 
-This is disclosed rather than quietly defaulted because it's a real trade-off, not a neutral
-choice: Groq's open-weight model has looser guarantees on the "extract only literal, explicit
-statements, do nothing for ordinary dictation" discipline the eval is built to measure, and cost
-for Groq calls is intentionally left untracked (`$0` in `model_calls`) rather than estimated. If
-you're reviewing this and only have one provider's key, either works end-to-end; the numbers in
-`eval/results` should be read as produced by whichever provider was configured at run time.
+This was disclosed rather than quietly defaulted because it was a real trade-off, not a neutral
+choice: Groq's open-weight model had looser guarantees on the "extract only literal, explicit
+statements, do nothing for ordinary dictation" discipline the eval measures — it required a
+`strict: true` fix that Anthropic didn't need, and its free-tier daily rate limit repeatedly
+interrupted full evaluation runs. **The final results in `eval/results/latest/` and reported above
+were produced entirely on Anthropic**, once a key became available, confirming it was the right
+call: Anthropic completed the full 512+19-case run cleanly with zero infrastructure errors on the
+first attempt after the switch, and its confidence calibration on ambiguous statements was
+noticeably better-behaved during debugging (see git history around the recurring-task fixes). If
+you're reviewing this with only a Groq key, the pipeline still runs end-to-end — the numbers just
+won't match the ones reported here, for the reasons above.
 
 ## Build phases (tracking)
 

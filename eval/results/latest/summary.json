@@ -1,105 +1,97 @@
 {
-  "generated_at": "2026-09-09 19:19:58",
+  "generated_at": "2026-09-12 13:19:50",
   "corpus": {
     "total_records": 512,
-    "harness_errors": 493,
-    "pass_rate_including_errors": 0.0371,
-    "pass_rate_excluding_errors": 1.0,
+    "harness_errors": 0,
+    "pass_rate_including_errors": 0.9102,
+    "pass_rate_excluding_errors": 0.9102,
     "by_bucket": {
-      "correct_non_intervention": 11,
-      "correct_intervention": 8,
-      "harness_error": 493
+      "correct_non_intervention": 287,
+      "correct_intervention": 153,
+      "ambiguous_handled_correctly": 24,
+      "false_negative": 7,
+      "wrong_decision": 36,
+      "known_limitation": 2,
+      "false_positive": 2,
+      "ambiguous_over_confident": 1
     },
     "by_category": {
       "negative_ordinary": {
-        "correct_non_intervention": 11,
-        "harness_error": 249
+        "correct_non_intervention": 258,
+        "false_positive": 2
       },
       "entity_clear": {
-        "correct_intervention": 4,
-        "harness_error": 66
+        "correct_intervention": 50,
+        "wrong_decision": 20
       },
       "instruction_clear": {
-        "correct_intervention": 2,
-        "harness_error": 48
+        "correct_intervention": 43,
+        "wrong_decision": 5,
+        "known_limitation": 2
       },
       "boundary_scope": {
-        "harness_error": 19,
-        "correct_intervention": 1
+        "correct_intervention": 15,
+        "wrong_decision": 5
       },
       "adversarial": {
-        "harness_error": 25
+        "correct_non_intervention": 25
       },
       "task_clear": {
-        "harness_error": 49,
-        "correct_intervention": 1
+        "correct_intervention": 38,
+        "false_negative": 7,
+        "wrong_decision": 5
       },
       "ambiguous": {
-        "harness_error": 25
+        "ambiguous_handled_correctly": 24,
+        "ambiguous_over_confident": 1
       },
       "recurring_task": {
-        "harness_error": 12
+        "correct_intervention": 7,
+        "correct_non_intervention": 4,
+        "wrong_decision": 1
       }
     },
     "latency_ms": {
-      "mean": 2747.3,
-      "median": 2124.0,
-      "p95": 2457,
-      "max": 75686
+      "mean": 2990.9,
+      "median": 2096.5,
+      "p95": 6356,
+      "max": 7506
     },
     "db_row_counts": {
-      "dictations": 22,
-      "entities": 5,
-      "instructions": 2,
-      "tasks": 1,
-      "memory_events": 27,
-      "model_calls": 19
+      "dictations": 512,
+      "entities": 57,
+      "instructions": 42,
+      "tasks": 32,
+      "memory_events": 700,
+      "model_calls": 512
     },
     "model_usage_by_purpose": [
       {
         "purpose": "extraction",
-        "calls": 19,
-        "in_tok": 23304,
-        "out_tok": 3781,
-        "cost": 0.0,
-        "avg_latency_ms": 9040.894736842105
+        "calls": 512,
+        "in_tok": 1177140,
+        "out_tok": 48215,
+        "cost": 1.418215,
+        "avg_latency_ms": 2988.91015625
       }
     ]
   },
   "qa": {
     "total_cases": 19,
-    "errors": 17,
-    "pass_rate_including_errors": 0.1053,
+    "errors": 0,
+    "pass_rate_including_errors": 1.0,
     "pass_rate_excluding_errors": 1.0,
-    "should_answer_correct": 0,
-    "should_answer_total": 0,
-    "should_refuse_correct": 2,
-    "should_refuse_total": 2,
+    "should_answer_correct": 10,
+    "should_answer_total": 10,
+    "should_refuse_correct": 9,
+    "should_refuse_total": 9,
     "failures": [],
-    "errored": [
-      "q001",
-      "q002",
-      "q003",
-      "q004",
-      "q005",
-      "q006",
-      "q007",
-      "q008",
-      "q010",
-      "q011",
-      "q012",
-      "q013",
-      "q014",
-      "q015",
-      "q016",
-      "q017",
-      "q019"
-    ],
+    "errored": [],
     "latency_ms": {
-      "mean": 639.5,
-      "median": 639.5
+      "mean": 4230.6,
+      "median": 4027
     },
-    "total_cost_usd": 0.0,
-    "total_tokens": 893
+    "total_cost_usd": 0.171091,
+    "total_tokens": 82291
   }
 }

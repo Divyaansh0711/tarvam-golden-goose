@@ -2,11 +2,11 @@
 
 **Primary review method: completely local application, SQLite embedded database.**
 
-> Status: phase 8 of 8, in progress. The full product (Memory, Dictation feed, Hey Kivi with
-> grounded Q&A), the 512-record eval corpus + 19-case Q&A test set, the evaluation harness, and the
-> corpus-import path are all built and documented below. The harness has been verified correct
-> (it caught and helped fix two real bugs — see README) but the full 512-record replay has not yet
-> been run to completion end-to-end in one pass; see README's Evaluation section for current status.
+> Status: complete. The full product (Memory, Dictation feed, Hey Kivi with grounded Q&A), the
+> 512-record eval corpus + 19-case Q&A test set, the evaluation harness, and the corpus-import path
+> are all built, tested, and documented. Final evaluation results (Anthropic): **91.0% corpus pass
+> rate, 100% Q&A pass rate, 0 infrastructure errors** — see README's Evaluation section for the full
+> breakdown and an honest accounting of what the residual ~9% actually is.
 
 ## 1. Runtimes and versions
 

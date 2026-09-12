@@ -1,63 +1,67 @@
 # Evaluation results
 
-Generated: 2026-09-09 19:19:58
+Generated: 2026-09-12 13:19:50
 
 ## Corpus replay
 
-- **512 records**, **493 infra errors** (rate-limited, not scored)
-- Pass rate **excluding** infra errors (the real quality signal): **100.0%**
-- Pass rate including infra errors as failures (pessimistic floor): **3.7%**
+- **512 records**, **0 infra errors** (rate-limited, not scored)
+- Pass rate **excluding** infra errors (the real quality signal): **91.0%**
+- Pass rate including infra errors as failures (pessimistic floor): **91.0%**
 
 ### Outcome breakdown
 
 | bucket | count |
 |---|---|
-| harness_error | 493 |
-| correct_non_intervention | 11 |
-| correct_intervention | 8 |
+| correct_non_intervention | 287 |
+| correct_intervention | 153 |
+| wrong_decision | 36 |
+| ambiguous_handled_correctly | 24 |
+| false_negative | 7 |
+| known_limitation | 2 |
+| false_positive | 2 |
+| ambiguous_over_confident | 1 |
 
 ### By category
 
-| category | correct_intervention | correct_non_intervention | harness_error |
-|---|---|---|---|
-| negative_ordinary | 0 | 11 | 249 |
-| entity_clear | 4 | 0 | 66 |
-| instruction_clear | 2 | 0 | 48 |
-| boundary_scope | 1 | 0 | 19 |
-| adversarial | 0 | 0 | 25 |
-| task_clear | 1 | 0 | 49 |
-| ambiguous | 0 | 0 | 25 |
-| recurring_task | 0 | 0 | 12 |
+| category | ambiguous_handled_correctly | ambiguous_over_confident | correct_intervention | correct_non_intervention | false_negative | false_positive | known_limitation | wrong_decision |
+|---|---|---|---|---|---|---|---|---|
+| negative_ordinary | 0 | 0 | 0 | 258 | 0 | 2 | 0 | 0 |
+| entity_clear | 0 | 0 | 50 | 0 | 0 | 0 | 0 | 20 |
+| instruction_clear | 0 | 0 | 43 | 0 | 0 | 0 | 2 | 5 |
+| boundary_scope | 0 | 0 | 15 | 0 | 0 | 0 | 0 | 5 |
+| adversarial | 0 | 0 | 0 | 25 | 0 | 0 | 0 | 0 |
+| task_clear | 0 | 0 | 38 | 0 | 7 | 0 | 0 | 5 |
+| ambiguous | 24 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| recurring_task | 0 | 0 | 7 | 4 | 0 | 0 | 0 | 1 |
 
 ### Latency (extraction, ms)
-mean 2747.3, median 2124.0, p95 2457, max 75686
+mean 2990.9, median 2096.5, p95 6356, max 7506
 
 ### Database growth (after full replay)
 
 | table | rows |
 |---|---|
-| dictations | 22 |
-| entities | 5 |
-| instructions | 2 |
-| tasks | 1 |
-| memory_events | 27 |
-| model_calls | 19 |
+| dictations | 512 |
+| entities | 57 |
+| instructions | 42 |
+| tasks | 32 |
+| memory_events | 700 |
+| model_calls | 512 |
 
 ### Model usage
 
 | purpose | calls | input tok | output tok | cost (USD) | avg latency (ms) |
 |---|---|---|---|---|---|
-| extraction | 19 | 23304 | 3781 | 0.000000 | 9041 |
+| extraction | 512 | 1177140 | 48215 | 1.418215 | 2989 |
 
 ## Grounded Q&A
 
-- **19 cases**, 17 infra errors (rate-limited, not scored)
+- **19 cases**, 0 infra errors (rate-limited, not scored)
 - Pass rate excluding infra errors: **100.0%**
-- Should-answer cases correct: 0/0
-- Should-refuse cases correct: 2/2
-- **17 case(s) errored (infra failure, not scored)**: q001, q002, q003, q004, q005, q006, q007, q008, q010, q011, q012, q013, q014, q015, q016, q017, q019 — re-run to get a real verdict for these
-- Latency (ms): mean 639.5, median 639.5
-- Total cost: $0.000000 across 893 tokens
+- Should-answer cases correct: 10/10
+- Should-refuse cases correct: 9/9
+- Latency (ms): mean 4230.6, median 4027
+- Total cost: $0.171091 across 82291 tokens
 
 ## Notes
 
